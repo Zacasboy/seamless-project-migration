@@ -15,7 +15,6 @@ export function StoreLayout({ children }: { children: ReactNode }) {
           </nav>
           <Link to="/" className="font-display text-2xl tracking-[0.3em] uppercase">Pallessiani</Link>
           <div className="flex items-center gap-5 text-sm">
-            <Link to="/admin" className="hover:text-gold">Painel</Link>
             <Link to="/carrinho" className="relative" aria-label="Carrinho">
               <ShoppingBag className="h-5 w-5" />
               {count > 0 && (
