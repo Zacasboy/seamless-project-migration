@@ -7,11 +7,8 @@ alter table public.products
   add column if not exists size_options text[] not null default '{}',
   add column if not exists color_options text[] not null default '{}',
   add column if not exists image_alt text,
-  add column if not exists image_source text,
-  add column if not exists supplier_product_url text,
   add column if not exists stock_status text not null default 'unknown',
-  add column if not exists currency text not null default 'EUR',
-  add column if not exists last_supplier_sync_at timestamptz;
+  add column if not exists currency text not null default 'EUR';
 
 create unique index if not exists products_sku_unique on public.products (sku) where sku is not null;
 create index if not exists products_category_gender_idx on public.products (category, gender);
@@ -32,6 +29,33 @@ alter table public.suppliers
   add column if not exists last_sync_error text;
 
 create unique index if not exists suppliers_provider_key_unique on public.suppliers (provider_key) where provider_key is not null;
+
+-- Keep supplier-specific URLs and costs private: published product rows are readable by shoppers.
+create table if not exists public.product_supplier_links (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null references public.products(id) on delete cascade,
+  supplier_id uuid not null references public.suppliers(id) on delete cascade,
+  supplier_product_url text,
+  supplier_sku text,
+  supplier_cost numeric(12,2),
+  supplier_currency text not null default 'EUR',
+  availability_status text not null default 'unknown',
+  last_checked_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (product_id, supplier_id)
+);
+alter table public.product_supplier_links enable row level security;
+revoke all on public.product_supplier_links from anon;
+grant select, insert, update, delete on public.product_supplier_links to authenticated;
+grant all on public.product_supplier_links to service_role;
+drop policy if exists "admin manages supplier links" on public.product_supplier_links;
+create policy "admin manages supplier links"
+  on public.product_supplier_links for all to authenticated
+  using (public.has_role(auth.uid(), 'admin'))
+  with check (public.has_role(auth.uid(), 'admin'));
+create index if not exists product_supplier_links_product_idx on public.product_supplier_links (product_id);
+create index if not exists product_supplier_links_supplier_idx on public.product_supplier_links (supplier_id);
 
 alter table public.ad_channels
   add column if not exists external_account_id text,
