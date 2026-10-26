@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, ArrowUpRight, BarChart3, Boxes, Camera, Check, ExternalLink, Eye, FileImage, Filter, LayoutDashboard, Link2, LockKeyhole, Package, Plus, Search, Settings2, Shirt, ShoppingCart, Sparkles, Store, Tag, Truck, Upload, Users, WandSparkles, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { productImage } from "@/lib/images";
 
 export const Route = createFileRoute("/_authenticated/admin")({ ssr: false, component: AdminWorkspace });
 type Section = "overview" | "products" | "customers" | "suppliers" | "marketing" | "traffic" | "styling";
@@ -9,10 +10,10 @@ type Product = { name: string; category: string; gender: string; price: number; 
 type Supplier = { name: string; type: string; region: string; status: string };
 
 const products: Product[] = [
-  { name: "Casaco de camurça estruturado", category: "Casacos", gender: "Mulher", price: 129, status: "Publicado", stock: "Disponível", image: "https://images.unsplash.com/photo-1548624149-f3b7c6c0c3a5?auto=format&fit=crop&w=240&q=80" },
-  { name: "Camisola de malha fina", category: "Malhas", gender: "Unissexo", price: 59, status: "Publicado", stock: "Disponível", image: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=240&q=80" },
-  { name: "Calças de alfaiataria", category: "Calças", gender: "Mulher", price: 79, status: "Rascunho", stock: "Confirmar fornecedor", image: "https://images.unsplash.com/photo-1506629905607-d9b2b4d7b0b7?auto=format&fit=crop&w=240&q=80" },
-  { name: "T-shirt essencial", category: "T-shirts", gender: "Homem", price: 29, status: "Publicado", stock: "Disponível", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=240&q=80" },
+  { name: "Casaco de camurça estruturado", category: "Casacos", gender: "Mulher", price: 129, status: "Publicado", stock: "Disponível", image: productImage({ image_key: "p10", image_url: null }) },
+  { name: "Camisola de malha fina", category: "Malhas", gender: "Unissexo", price: 59, status: "Publicado", stock: "Disponível", image: productImage({ image_key: "p11", image_url: null }) },
+  { name: "Calças de alfaiataria", category: "Calças", gender: "Mulher", price: 79, status: "Rascunho", stock: "Confirmar fornecedor", image: productImage({ image_key: "p20", image_url: null }) },
+  { name: "T-shirt essencial", category: "T-shirts", gender: "Homem", price: 29, status: "Publicado", stock: "Disponível", image: productImage({ image_key: "p1", image_url: null }) },
 ];
 const customers = [
   { name: "Ana Silva", email: "ana.silva@example.test", segment: "Cliente recorrente", spend: "€ 428", swot: "Valoriza qualidade; sensível a preço", pestel: "Urbana · compra mobile" },
