@@ -3,6 +3,7 @@ name: Pallessiani CI
 on:
   push:
     branches:
+      - main
       - security/hide-admin-panel
   pull_request:
     branches:
