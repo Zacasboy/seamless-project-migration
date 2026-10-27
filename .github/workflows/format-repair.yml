@@ -1,6 +1,9 @@
 name: Repair source formatting and validate
 
 on:
+  push:
+    branches:
+      - security/hide-admin-panel
   workflow_dispatch:
 
 permissions:
@@ -43,8 +46,6 @@ jobs:
             xargs -r bunx prettier --write
 
       - name: Commit formatting changes to selected non-main branch
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${GITHUB_REF_NAME}" = "main" ]; then
             echo "Refusing to write formatting changes to main."
