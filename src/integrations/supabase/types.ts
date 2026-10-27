@@ -17,63 +17,204 @@ export type Database = {
       ad_channels: {
         Row: {
           budget: number
+          campaigns: number
+          clicks: number
+          conversions: number
           created_at: string
           id: string
+          impressions: number
+          integration_state: string
+          is_demo: boolean
           name: string
           platform: string
+          revenue: number
+          sessions: number
+          spend: number
           status: string
         }
         Insert: {
           budget?: number
+          campaigns?: number
+          clicks?: number
+          conversions?: number
           created_at?: string
           id?: string
+          impressions?: number
+          integration_state?: string
+          is_demo?: boolean
           name: string
           platform: string
+          revenue?: number
+          sessions?: number
+          spend?: number
           status?: string
         }
         Update: {
           budget?: number
+          campaigns?: number
+          clicks?: number
+          conversions?: number
           created_at?: string
           id?: string
+          impressions?: number
+          integration_state?: string
+          is_demo?: boolean
           name?: string
           platform?: string
+          revenue?: number
+          sessions?: number
+          spend?: number
           status?: string
+        }
+        Relationships: []
+      }
+      collection_items: {
+        Row: {
+          collection_id: string
+          product_id: string
+        }
+        Insert: {
+          collection_id: string
+          product_id: string
+        }
+        Update: {
+          collection_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collections: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          is_demo: boolean
+          published: boolean
+          slug: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_demo?: boolean
+          published?: boolean
+          slug: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_demo?: boolean
+          published?: boolean
+          slug?: string
+          title?: string
         }
         Relationships: []
       }
       customers: {
         Row: {
+          consent_marketing: boolean
           country: string | null
           created_at: string
           email: string | null
           id: string
+          is_demo: boolean
           name: string
           notes: string | null
+          orders_count: number
           pestel: Json
           segment: string
+          segment_reason: string | null
           swot: Json
+          total_spent: number
         }
         Insert: {
+          consent_marketing?: boolean
           country?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          is_demo?: boolean
           name: string
           notes?: string | null
+          orders_count?: number
           pestel?: Json
           segment?: string
+          segment_reason?: string | null
           swot?: Json
+          total_spent?: number
         }
         Update: {
+          consent_marketing?: boolean
           country?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          is_demo?: boolean
           name?: string
           notes?: string | null
+          orders_count?: number
           pestel?: Json
           segment?: string
+          segment_reason?: string | null
           swot?: Json
+          total_spent?: number
+        }
+        Relationships: []
+      }
+      opportunity_findings: {
+        Row: {
+          action: string | null
+          assumptions: string | null
+          confidence: string
+          created_at: string
+          evidence: string
+          id: string
+          is_demo: boolean
+          source: string
+          title: string
+          upside: string | null
+        }
+        Insert: {
+          action?: string | null
+          assumptions?: string | null
+          confidence?: string
+          created_at?: string
+          evidence?: string
+          id?: string
+          is_demo?: boolean
+          source: string
+          title: string
+          upside?: string | null
+        }
+        Update: {
+          action?: string | null
+          assumptions?: string | null
+          confidence?: string
+          created_at?: string
+          evidence?: string
+          id?: string
+          is_demo?: boolean
+          source?: string
+          title?: string
+          upside?: string | null
         }
         Relationships: []
       }
@@ -104,59 +245,96 @@ export type Database = {
       products: {
         Row: {
           category: string
+          cost: number | null
           created_at: string
           description: string
           gender: string
           id: string
           image_key: string | null
           image_url: string | null
+          is_demo: boolean
           meta_description: string | null
           meta_title: string | null
           price: number
           published: boolean
+          sizes: string[]
           slug: string
+          stock: number
           supplier: string | null
           title: string
         }
         Insert: {
           category: string
+          cost?: number | null
           created_at?: string
           description?: string
           gender?: string
           id?: string
           image_key?: string | null
           image_url?: string | null
+          is_demo?: boolean
           meta_description?: string | null
           meta_title?: string | null
           price?: number
           published?: boolean
+          sizes?: string[]
           slug: string
+          stock?: number
           supplier?: string | null
           title: string
         }
         Update: {
           category?: string
+          cost?: number | null
           created_at?: string
           description?: string
           gender?: string
           id?: string
           image_key?: string | null
           image_url?: string | null
+          is_demo?: boolean
           meta_description?: string | null
           meta_title?: string | null
           price?: number
           published?: boolean
+          sizes?: string[]
           slug?: string
+          stock?: number
           supplier?: string | null
           title?: string
         }
         Relationships: []
       }
+      saved_outfits: {
+        Row: {
+          created_at: string
+          id: string
+          product_ids: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_ids: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_ids?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
+          api_support: string
           connected: boolean
           created_at: string
           id: string
+          integration_state: string
+          is_demo: boolean
+          last_sync_at: string | null
           name: string
           region: string | null
           specialty: string | null
@@ -164,9 +342,13 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          api_support?: string
           connected?: boolean
           created_at?: string
           id?: string
+          integration_state?: string
+          is_demo?: boolean
+          last_sync_at?: string | null
           name: string
           region?: string | null
           specialty?: string | null
@@ -174,9 +356,13 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          api_support?: string
           connected?: boolean
           created_at?: string
           id?: string
+          integration_state?: string
+          is_demo?: boolean
+          last_sync_at?: string | null
           name?: string
           region?: string | null
           specialty?: string | null
@@ -208,6 +394,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_owner: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -215,6 +402,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      owner_exists: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
