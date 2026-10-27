@@ -1,9 +1,6 @@
 name: Repair source formatting and validate
 
 on:
-  push:
-    branches:
-      - security/hide-admin-panel
   workflow_dispatch:
 
 permissions:
