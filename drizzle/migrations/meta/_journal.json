@@ -8,6 +8,34 @@
       "when": 1792978415654,
       "tag": "0000_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793122705424,
+      "tag": "0001_secure_admin_role_bootstrap_and_crm_catalog",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793125414234,
+      "tag": "0002_profiles_orders_email_change_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793131219642,
+      "tag": "0003_guard_auth_email_change_requires_approval",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793131301309,
+      "tag": "0004_email_change_single_use_bound_approval",
+      "breakpoints": true
     }
   ]
 }
