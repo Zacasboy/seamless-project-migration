@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Admin CRUD uses dynamic table/column keys not represented by the generated Supabase type map. */
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminCrud } from "@/components/admin/AdminCrud";
 import { Badge } from "@/components/ui/badge";
