@@ -11,7 +11,8 @@ import { euro, useCart } from "@/lib/cart";
 import { productsQuery } from "./index";
 import { trackView } from "@/lib/track";
 
-const productQuery = (slug: string) => queryOptions({ queryKey: ["product", slug], queryFn: () => getProduct({ data: { slug } }) });
+const productQuery = (slug: string) =>
+  queryOptions({ queryKey: ["product", slug], queryFn: () => getProduct({ data: { slug } }) });
 
 export const Route = createFileRoute("/produto/$slug")({
   loader: async ({ context, params }) => {
@@ -35,7 +36,9 @@ export const Route = createFileRoute("/produto/$slug")({
     <StoreLayout>
       <div className="py-32 text-center">
         <h1 className="text-4xl">Artigo não encontrado</h1>
-        <Link to="/loja" className="mt-4 inline-block underline">Voltar à loja</Link>
+        <Link to="/loja" className="mt-4 inline-block underline">
+          Voltar à loja
+        </Link>
       </div>
     </StoreLayout>
   ),
@@ -47,7 +50,9 @@ function ProductPage() {
   const { data: p } = useSuspenseQuery(productQuery(slug));
   const { data: all } = useSuspenseQuery(productsQuery);
   const cart = useCart();
-  useEffect(() => { if (p) trackView(`/produto/${slug}`, p.id); }, [slug, p]);
+  useEffect(() => {
+    if (p) trackView(`/produto/${slug}`, p.id);
+  }, [slug, p]);
   if (!p) return null;
   const img = productImage(p);
   const related = all.filter((x) => x.id !== p.id && x.category !== p.category).slice(0, 4);
@@ -56,12 +61,26 @@ function ProductPage() {
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 md:grid-cols-2">
         <img src={img} alt={p.title} className="aspect-[3/4] w-full object-cover" />
         <div className="md:py-12">
-          <p className="eyebrow">{p.category} · {p.gender}</p>
+          <p className="eyebrow">
+            {p.category} · {p.gender}
+          </p>
           <h1 className="mt-3 text-5xl">{p.title}</h1>
           <p className="mt-4 text-2xl">{euro(Number(p.price))}</p>
           <p className="mt-6 text-muted-foreground leading-relaxed">{p.description}</p>
-          <Button size="lg" className="mt-8 w-full md:w-auto"
-            onClick={() => { cart.add({ id: p.id, slug: p.slug, title: p.title, price: Number(p.price), image: img }); toast.success("Adicionado ao carrinho"); }}>
+          <Button
+            size="lg"
+            className="mt-8 w-full md:w-auto"
+            onClick={() => {
+              cart.add({
+                id: p.id,
+                slug: p.slug,
+                title: p.title,
+                price: Number(p.price),
+                image: img ?? "",
+              });
+              toast.success("Adicionado ao carrinho");
+            }}
+          >
             Adicionar ao carrinho
           </Button>
         </div>
@@ -69,7 +88,11 @@ function ProductPage() {
       {related.length > 0 && (
         <section className="mx-auto max-w-7xl px-6 pb-16">
           <h2 className="mb-6 text-3xl">Completa o look</h2>
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">{related.map((r) => <ProductCard key={r.id} p={r} />)}</div>
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+            {related.map((r) => (
+              <ProductCard key={r.id} p={r} />
+            ))}
+          </div>
         </section>
       )}
     </StoreLayout>
