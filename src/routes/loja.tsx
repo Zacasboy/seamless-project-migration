@@ -10,9 +10,11 @@ const CATS = ["Todos", "Malas", "Calçado", "Conjuntos"];
 const GENDERS = ["todos", "mulher", "homem"];
 
 export const Route = createFileRoute("/loja")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    categoria: typeof s.categoria === "string" ? s.categoria : undefined,
-    genero: typeof s.genero === "string" ? s.genero : undefined,
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { categoria?: string | undefined; genero?: string | undefined } => ({
+    categoria: typeof s["categoria"] === "string" ? s["categoria"] : undefined,
+    genero: typeof s["genero"] === "string" ? s["genero"] : undefined,
   }),
   head: () => ({
     meta: [
@@ -31,7 +33,9 @@ function Shop() {
   const { categoria, genero } = Route.useSearch();
   useEffect(() => trackView("/loja"), []);
   const list = data.filter(
-    (p) => (!categoria || categoria === "Todos" || p.category === categoria) && (!genero || genero === "todos" || p.gender === genero),
+    (p) =>
+      (!categoria || categoria === "Todos" || p.category === categoria) &&
+      (!genero || genero === "todos" || p.gender === genero),
   );
   return (
     <StoreLayout>
@@ -40,21 +44,41 @@ function Shop() {
         <div className="mt-6 flex flex-wrap gap-6 border-b pb-4 text-sm">
           <div className="flex gap-4">
             {CATS.map((c) => (
-              <Link key={c} to="/loja" search={{ categoria: c === "Todos" ? undefined : c, genero }}
-                className={(categoria ?? "Todos") === c ? "text-gold" : "text-muted-foreground hover:text-foreground"}>{c}</Link>
+              <Link
+                key={c}
+                to="/loja"
+                search={{ categoria: c === "Todos" ? undefined : c, genero }}
+                className={
+                  (categoria ?? "Todos") === c
+                    ? "text-gold"
+                    : "text-muted-foreground hover:text-foreground"
+                }
+              >
+                {c}
+              </Link>
             ))}
           </div>
           <div className="flex gap-4 md:ml-auto">
             {GENDERS.map((g) => (
-              <Link key={g} to="/loja" search={{ categoria, genero: g === "todos" ? undefined : g }}
-                className={`capitalize ${(genero ?? "todos") === g ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}>{g}</Link>
+              <Link
+                key={g}
+                to="/loja"
+                search={{ categoria, genero: g === "todos" ? undefined : g }}
+                className={`capitalize ${(genero ?? "todos") === g ? "text-gold" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {g}
+              </Link>
             ))}
           </div>
         </div>
         <div className="mt-8 grid grid-cols-2 gap-6 md:grid-cols-4">
-          {list.map((p) => <ProductCard key={p.id} p={p} />)}
+          {list.map((p) => (
+            <ProductCard key={p.id} p={p} />
+          ))}
         </div>
-        {list.length === 0 && <p className="py-20 text-center text-muted-foreground">Nenhum artigo nesta seleção.</p>}
+        {list.length === 0 && (
+          <p className="py-20 text-center text-muted-foreground">Nenhum artigo nesta seleção.</p>
+        )}
       </div>
     </StoreLayout>
   );
