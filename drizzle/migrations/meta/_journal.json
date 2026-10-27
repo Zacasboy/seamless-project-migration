@@ -36,6 +36,13 @@
       "when": 1793131301309,
       "tag": "0004_email_change_single_use_bound_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793142531050,
+      "tag": "0005_harden_has_role",
+      "breakpoints": true
     }
   ]
 }
