@@ -1,6 +1,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type CartItem = { id: string; slug: string; title: string; price: number; image: string; qty: number };
+export type CartItem = {
+  id: string;
+  slug: string;
+  title: string;
+  price: number;
+  image: string;
+  qty: number;
+};
 
 type Ctx = {
   items: CartItem[];
@@ -22,7 +29,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       setItems(JSON.parse(localStorage.getItem(KEY) || "[]"));
-    } catch {}
+    } catch {
+      // Corrupt or unavailable saved cart: start with an empty cart.
+      setItems([]);
+    }
     setReady(true);
   }, []);
   useEffect(() => {
@@ -38,7 +48,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return [...prev, { ...item, qty: 1 }];
       }),
     remove: (id) => setItems((prev) => prev.filter((i) => i.id !== id)),
-    setQty: (id, qty) => setItems((prev) => prev.map((i) => (i.id === id ? { ...i, qty: Math.max(1, qty) } : i))),
+    setQty: (id, qty) =>
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, qty: Math.max(1, qty) } : i))),
     clear: () => setItems([]),
     total: items.reduce((s, i) => s + i.price * i.qty, 0),
     count: items.reduce((s, i) => s + i.qty, 0),
