@@ -1,7 +1,8 @@
 -- Security regression tests for the schema created by migrations 0000-0003.
--- Run only after applying the migrations to a disposable/test Supabase database:
---   supabase test db
--- These tests do not insert, update, or delete application data.
+-- Run only against a disposable/test database after applying the SQL files in
+-- drizzle/migrations in order and installing pgTAP. The current migration files
+-- are under drizzle/migrations, not supabase/migrations, so `supabase test db`
+-- will not apply this project's schema automatically. No application rows are changed.
 
 begin;
 
