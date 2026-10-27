@@ -11,11 +11,14 @@ function Page() {
     <AdminCrud
       table="customers"
       title="Clientes (CRM)"
-      intro={<>
-        Segmentos baseados apenas em dados observáveis (compras, visitas, consentimento) — indique sempre o motivo do segmento.
-        SWOT e PESTEL descrevem o <b>contexto de mercado do segmento</b> e são hipóteses de negócio, não perfis pessoais.
-        RGPD: recolha só o necessário, respeite o consentimento e apague dados a pedido.
-      </>}
+      intro={
+        <>
+          Segmentos baseados apenas em dados observáveis (compras, visitas, consentimento) — indique
+          sempre o motivo do segmento. SWOT e PESTEL descrevem o{" "}
+          <b>contexto de mercado do segmento</b> e são hipóteses de negócio, não perfis pessoais.
+          RGPD: recolha só o necessário, respeite o consentimento e apague dados a pedido.
+        </>
+      }
       searchKeys={["name", "email", "country"]}
       filterKey="segment"
       filterOptions={SEGMENTS}
@@ -26,7 +29,11 @@ function Page() {
         { key: "segment_reason", label: "Motivo do segmento" },
         { key: "orders_count", label: "Encomendas" },
         { key: "total_spent", label: "Total", render: (r) => euro(Number(r.total_spent)) },
-        { key: "consent_marketing", label: "Consentimento", render: (r) => (r.consent_marketing ? "Sim" : "Não") },
+        {
+          key: "consent_marketing",
+          label: "Consentimento",
+          render: (r) => (r.consent_marketing ? "Sim" : "Não"),
+        },
       ]}
       fields={[
         { key: "name", label: "Nome", required: true },

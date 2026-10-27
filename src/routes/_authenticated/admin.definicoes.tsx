@@ -3,10 +3,22 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/_authenticated/admin/definicoes")({ component: Page });
 
 const ITEMS = [
-  ["Pagamentos (Stripe)", "Pendente — os pagamentos integrados requerem um plano pago do Lovable. O botão de checkout está desativado até lá."],
-  ["Fornecedores", "Cada fornecedor terá um adaptador no servidor (importar catálogo, stock, encomendas). As chaves de API ficam em segredos do servidor, nunca no navegador."],
-  ["Canais de marketing", "Meta, Google, TikTok e Pinterest exigem aprovação da app e chaves próprias. Até lá, nenhuma métrica é mostrada como real."],
-  ["Privacidade (RGPD)", "Visitas guardadas sem dados pessoais. Fotos do provador nunca saem do navegador e não são guardadas."],
+  [
+    "Pagamentos (Stripe)",
+    "Pendente — os pagamentos integrados requerem um plano pago do Lovable. O botão de checkout está desativado até lá.",
+  ],
+  [
+    "Fornecedores",
+    "Cada fornecedor terá um adaptador no servidor (importar catálogo, stock, encomendas). As chaves de API ficam em segredos do servidor, nunca no navegador.",
+  ],
+  [
+    "Canais de marketing",
+    "Meta, Google, TikTok e Pinterest exigem aprovação da app e chaves próprias. Até lá, nenhuma métrica é mostrada como real.",
+  ],
+  [
+    "Privacidade (RGPD)",
+    "Visitas guardadas sem dados pessoais. Fotos do provador nunca saem do navegador e não são guardadas.",
+  ],
 ];
 
 function Page() {

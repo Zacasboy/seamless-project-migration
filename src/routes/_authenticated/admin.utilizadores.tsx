@@ -20,9 +20,13 @@ function Page() {
     },
   });
   async function add() {
-    const { error } = await supabase.from("user_roles").insert({ user_id: uid.trim(), role: "admin" });
+    const { error } = await supabase
+      .from("user_roles")
+      .insert({ user_id: uid.trim(), role: "admin" });
     if (error) return toast.error(`Não foi possível adicionar: ${error.message}`);
-    setUid(""); toast.success("Administrador adicionado"); qc.invalidateQueries({ queryKey: ["roles"] });
+    setUid("");
+    toast.success("Administrador adicionado");
+    qc.invalidateQueries({ queryKey: ["roles"] });
   }
   async function remove(id: string) {
     const admins = roles.data?.filter((r) => r.role === "admin").length ?? 0;
@@ -34,16 +38,28 @@ function Page() {
   return (
     <div>
       <h1 className="text-4xl">Utilizadores e permissões</h1>
-      <p className="mt-1 text-sm text-muted-foreground">As permissões ficam numa tabela protegida; só administradores as podem alterar. Para adicionar um administrador, cole o ID do utilizador (visível em Cloud → Utilizadores).</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        As permissões ficam numa tabela protegida; só administradores as podem alterar. Para
+        adicionar um administrador, cole o ID do utilizador (visível em Cloud → Utilizadores).
+      </p>
       <div className="mt-6 flex max-w-xl gap-2">
-        <Input placeholder="ID do utilizador" value={uid} onChange={(e) => setUid(e.target.value)} />
-        <Button onClick={add} disabled={!uid.trim()}>Tornar administrador</Button>
+        <Input
+          placeholder="ID do utilizador"
+          value={uid}
+          onChange={(e) => setUid(e.target.value)}
+        />
+        <Button onClick={add} disabled={!uid.trim()}>
+          Tornar administrador
+        </Button>
       </div>
       <ul className="mt-6 divide-y rounded-md border bg-card text-sm">
         {roles.data?.map((r) => (
           <li key={r.id} className="flex items-center justify-between px-4 py-2">
-            <span className="font-mono text-xs">{r.user_id}</span><span>{r.role}</span>
-            <Button size="sm" variant="ghost" onClick={() => remove(r.id)}>Remover</Button>
+            <span className="font-mono text-xs">{r.user_id}</span>
+            <span>{r.role}</span>
+            <Button size="sm" variant="ghost" onClick={() => remove(r.id)}>
+              Remover
+            </Button>
           </li>
         ))}
       </ul>

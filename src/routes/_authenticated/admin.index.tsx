@@ -7,7 +7,10 @@ export const Route = createFileRoute("/_authenticated/admin/")({ component: Over
 
 function count(table: string) {
   return async () => {
-    const { count, error } = await (supabase.from(table as any) as any).select("*", { count: "exact", head: true });
+    const { count, error } = await (supabase.from(table as any) as any).select("*", {
+      count: "exact",
+      head: true,
+    });
     if (error) throw new Error(error.message);
     return count ?? 0;
   };
@@ -20,7 +23,11 @@ function Overview() {
   const low = useQuery({
     queryKey: ["lowstock"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("id,title,stock,price").lt("stock", 5).order("stock");
+      const { data, error } = await supabase
+        .from("products")
+        .select("id,title,stock,price")
+        .lt("stock", 5)
+        .order("stock");
       if (error) throw new Error(error.message);
       return data;
     },
@@ -44,9 +51,16 @@ function Overview() {
       <h2 className="mt-10 text-2xl">Stock baixo (&lt; 5)</h2>
       <ul className="mt-3 divide-y rounded-md border bg-card text-sm">
         {(low.data ?? []).map((p) => (
-          <li key={p.id} className="flex justify-between px-4 py-2"><span>{p.title}</span><span>{p.stock} un. · {euro(Number(p.price))}</span></li>
+          <li key={p.id} className="flex justify-between px-4 py-2">
+            <span>{p.title}</span>
+            <span>
+              {p.stock} un. · {euro(Number(p.price))}
+            </span>
+          </li>
         ))}
-        {low.data?.length === 0 && <li className="px-4 py-3 text-muted-foreground">Nenhum produto com stock baixo.</li>}
+        {low.data?.length === 0 && (
+          <li className="px-4 py-3 text-muted-foreground">Nenhum produto com stock baixo.</li>
+        )}
       </ul>
     </div>
   );

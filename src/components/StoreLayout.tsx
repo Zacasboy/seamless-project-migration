@@ -10,12 +10,20 @@ export function StoreLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <nav className="flex gap-6 text-sm">
-            <Link to="/loja" className="hover:text-gold" activeProps={{ className: "text-gold" }}>Loja</Link>
-            <Link to="/loja" search={{ categoria: "Conjuntos" }} className="hover:text-gold">Conjuntos</Link>
+            <Link to="/loja" className="hover:text-gold" activeProps={{ className: "text-gold" }}>
+              Loja
+            </Link>
+            <Link to="/loja" search={{ categoria: "Conjuntos" }} className="hover:text-gold">
+              Conjuntos
+            </Link>
           </nav>
-          <Link to="/" className="font-display text-2xl tracking-[0.3em] uppercase">Pallessiani</Link>
+          <Link to="/" className="font-display text-2xl tracking-[0.3em] uppercase">
+            Pallessiani
+          </Link>
           <div className="flex items-center gap-5 text-sm">
-            <Link to="/admin" className="hover:text-gold">Painel</Link>
+            <Link to="/admin" className="hover:text-gold">
+              Painel
+            </Link>
             <Link to="/carrinho" className="relative" aria-label="Carrinho">
               <ShoppingBag className="h-5 w-5" />
               {count > 0 && (
@@ -38,7 +46,9 @@ export function StoreLayout({ children }: { children: ReactNode }) {
             <p>Malas · Calçado · Conjuntos</p>
             <p>Envio para Portugal e UE</p>
           </div>
-          <p className="text-sm opacity-60 md:text-right">© {new Date().getFullYear()} Pallessiani</p>
+          <p className="text-sm opacity-60 md:text-right">
+            © {new Date().getFullYear()} Pallessiani
+          </p>
         </div>
       </footer>
     </div>

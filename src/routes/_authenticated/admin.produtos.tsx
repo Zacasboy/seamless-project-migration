@@ -16,13 +16,24 @@ function Page() {
       filterKey="category"
       filterOptions={["Malas", "Calçado", "Conjuntos"]}
       columns={[
-        { key: "title", label: "Produto", render: (r) => (
-          <span className="flex items-center gap-2"><img src={productImage(r as any)} alt="" className="h-10 w-8 object-cover" />{r.title}</span>
-        ) },
+        {
+          key: "title",
+          label: "Produto",
+          render: (r) => (
+            <span className="flex items-center gap-2">
+              <img src={productImage(r as any)} alt="" className="h-10 w-8 object-cover" />
+              {r.title}
+            </span>
+          ),
+        },
         { key: "category", label: "Categoria" },
         { key: "gender", label: "Género" },
         { key: "price", label: "Preço", render: (r) => euro(Number(r.price)) },
-        { key: "stock", label: "Stock", render: (r) => r.stock > 0 ? r.stock : <Badge variant="destructive">Esgotado</Badge> },
+        {
+          key: "stock",
+          label: "Stock",
+          render: (r) => (r.stock > 0 ? r.stock : <Badge variant="destructive">Esgotado</Badge>),
+        },
         { key: "supplier", label: "Fornecedor" },
         { key: "published", label: "Publicado", render: (r) => (r.published ? "Sim" : "Não") },
       ]}
@@ -34,8 +45,20 @@ function Page() {
         { key: "cost", label: "Custo (€)", type: "number" },
         { key: "stock", label: "Stock", type: "number" },
         { key: "sizes", label: "Tamanhos (separados por vírgula)", type: "list" },
-        { key: "category", label: "Categoria", type: "select", options: ["Malas", "Calçado", "Conjuntos"], required: true },
-        { key: "gender", label: "Género", type: "select", options: ["mulher", "homem", "unisex"], required: true },
+        {
+          key: "category",
+          label: "Categoria",
+          type: "select",
+          options: ["Malas", "Calçado", "Conjuntos"],
+          required: true,
+        },
+        {
+          key: "gender",
+          label: "Género",
+          type: "select",
+          options: ["mulher", "homem", "unisex"],
+          required: true,
+        },
         { key: "image_url", label: "URL da imagem (https)" },
         { key: "meta_title", label: "Título SEO" },
         { key: "meta_description", label: "Meta descrição SEO", type: "textarea" },

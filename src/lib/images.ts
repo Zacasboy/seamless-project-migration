@@ -1,4 +1,7 @@
-const modules = import.meta.glob<{ url: string }>("../assets/products/*.json", { eager: true, import: "default" });
+const modules = import.meta.glob<{ url: string }>("../assets/products/*.json", {
+  eager: true,
+  import: "default",
+});
 
 const map: Record<string, string> = {};
 for (const [path, mod] of Object.entries(modules)) {
