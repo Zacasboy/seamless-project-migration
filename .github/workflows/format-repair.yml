@@ -1,26 +1,29 @@
-name: Repair source formatting and validate
+name: Repair main formatting and validate
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: format-repair-${{ github.ref }}
+  group: main-format-repair
   cancel-in-progress: false
 
 jobs:
-  repair-and-validate:
-    name: Format source and run checks
+  format-and-validate:
+    name: Format main and validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.ref != 'refs/heads/main'
     steps:
-      - name: Checkout selected branch
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: main
+          token: ${{ github.token }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -42,12 +45,8 @@ jobs:
             grep -v 'routeTree.gen.ts' |
             xargs -r bunx prettier --write
 
-      - name: Commit formatting changes to selected non-main branch
+      - name: Commit formatting changes to main
         run: |
-          if [ "${GITHUB_REF_NAME}" = "main" ]; then
-            echo "Refusing to write formatting changes to main."
-            exit 1
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src
@@ -55,27 +54,14 @@ jobs:
             echo "No formatting changes needed."
           else
             git commit -m "style: format TypeScript and JavaScript source"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
+            git push origin HEAD:main
           fi
 
       - name: Run ESLint
-        id: lint
-        continue-on-error: true
         run: bun run lint
 
       - name: Run tests
-        id: tests
-        continue-on-error: true
         run: bun run test
 
       - name: Build application
-        id: build
-        continue-on-error: true
         run: bun run build
-
-      - name: Report validation results
-        if: always()
-        run: |
-          echo "Lint outcome: ${{ steps.lint.outcome }}"
-          echo "Tests outcome: ${{ steps.tests.outcome }}"
-          echo "Build outcome: ${{ steps.build.outcome }}"
