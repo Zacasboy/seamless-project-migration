@@ -1,6 +1,9 @@
 -- RLS authorization policy regression tests for migrations 0000-0003.
--- Run only against a disposable/test database after migrations are applied.
--- Uses pgTAP and inspects catalog metadata; no application rows are modified.
+-- Run only against a disposable/test database after applying the SQL files in
+-- drizzle/migrations in order and installing pgTAP. The current migration files
+-- are under drizzle/migrations, not supabase/migrations, so `supabase test db`
+-- will not apply this project's schema automatically. These tests inspect catalog
+-- metadata; no application rows are modified.
 
 begin;
 
