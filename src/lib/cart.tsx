@@ -29,7 +29,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       setItems(JSON.parse(localStorage.getItem(KEY) || "[]"));
-    } catch {}
+    } catch {
+      // Ignore invalid or unavailable saved cart data and start with an empty cart.
+    }
     setReady(true);
   }, []);
   useEffect(() => {
