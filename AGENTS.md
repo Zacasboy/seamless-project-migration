@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Public backend values (VITE_SUPABASE_*) have a fallback in vite.config.ts because .gitignore excludes .env and hosted builds would otherwise ship without them; keep only publishable values there.
