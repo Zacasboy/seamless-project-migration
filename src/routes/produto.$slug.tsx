@@ -76,7 +76,7 @@ function ProductPage() {
                 slug: p.slug,
                 title: p.title,
                 price: Number(p.price),
-                image: img,
+                image: img ?? "",
               });
               toast.success("Adicionado ao carrinho");
             }}
