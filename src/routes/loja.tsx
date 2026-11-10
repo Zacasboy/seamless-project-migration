@@ -10,7 +10,7 @@ const CATS = ["Todos", "Malas", "Calçado", "Conjuntos"];
 const GENDERS = ["todos", "mulher", "homem"];
 
 export const Route = createFileRoute("/loja")({
-  validateSearch: (s: Record<string, unknown>): { categoria?: string; genero?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { categoria?: string | undefined; genero?: string | undefined } => ({
     ...(typeof s["categoria"] === "string" ? { categoria: s["categoria"] } : {}),
     ...(typeof s["genero"] === "string" ? { genero: s["genero"] } : {}),
   }),
