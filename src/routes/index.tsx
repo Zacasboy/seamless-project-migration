@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { StoreLayout } from "@/components/StoreLayout";
 import { ProductCard } from "@/components/ProductCard";
-import { listProducts } from "@/lib/products.functions";
+import { listProducts, type Product } from "@/lib/products.functions";
 import { heroImage, heroImage2 } from "@/lib/images";
 import { Button } from "@/components/ui/button";
 import { trackView } from "@/lib/track";
@@ -89,7 +89,7 @@ function Section({
 }: {
   title: string;
   eyebrow: string;
-  items: ReturnType<typeof useSuspenseQuery<typeof productsQuery>>["data"];
+  items: Product[];
   cat: string;
 }) {
   return (
