@@ -36,6 +36,7 @@ import { Route as AuthenticatedAdminProdutosRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminRadarRouteImport } from './routes/_authenticated/admin.radar'
 import { Route as AuthenticatedAdminTrafegoRouteImport } from './routes/_authenticated/admin.trafego'
 import { Route as AuthenticatedAdminUtilizadoresRouteImport } from './routes/_authenticated/admin.utilizadores'
+import { Route as ApiCronSyncStockRouteImport } from './routes/api/cron/sync-stock'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -181,6 +182,11 @@ const AuthenticatedAdminUtilizadoresRoute =
     path: '/utilizadores',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const ApiCronSyncStockRoute = ApiCronSyncStockRouteImport.update({
+  id: '/api/cron/sync-stock',
+  path: '/api/cron/sync-stock',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/admin/radar': typeof AuthenticatedAdminRadarRoute
   '/admin/trafego': typeof AuthenticatedAdminTrafegoRoute
   '/admin/utilizadores': typeof AuthenticatedAdminUtilizadoresRoute
+  '/api/cron/sync-stock': typeof ApiCronSyncStockRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/admin/radar': typeof AuthenticatedAdminRadarRoute
   '/admin/trafego': typeof AuthenticatedAdminTrafegoRoute
   '/admin/utilizadores': typeof AuthenticatedAdminUtilizadoresRoute
+  '/api/cron/sync-stock': typeof ApiCronSyncStockRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -265,6 +273,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/radar': typeof AuthenticatedAdminRadarRoute
   '/_authenticated/admin/trafego': typeof AuthenticatedAdminTrafegoRoute
   '/_authenticated/admin/utilizadores': typeof AuthenticatedAdminUtilizadoresRoute
+  '/api/cron/sync-stock': typeof ApiCronSyncStockRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/admin/radar'
     | '/admin/trafego'
     | '/admin/utilizadores'
+    | '/api/cron/sync-stock'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -322,6 +332,7 @@ export interface FileRouteTypes {
     | '/admin/radar'
     | '/admin/trafego'
     | '/admin/utilizadores'
+    | '/api/cron/sync-stock'
     | '/admin'
   id:
     | '__root__'
@@ -351,6 +362,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/radar'
     | '/_authenticated/admin/trafego'
     | '/_authenticated/admin/utilizadores'
+    | '/api/cron/sync-stock'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -369,6 +381,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
+  ApiCronSyncStockRoute: typeof ApiCronSyncStockRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -562,6 +575,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUtilizadoresRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/api/cron/sync-stock': {
+      id: '/api/cron/sync-stock'
+      path: '/api/cron/sync-stock'
+      fullPath: '/api/cron/sync-stock'
+      preLoaderRoute: typeof ApiCronSyncStockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -624,6 +644,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
+  ApiCronSyncStockRoute: ApiCronSyncStockRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

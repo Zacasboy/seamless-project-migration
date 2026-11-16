@@ -56,6 +56,30 @@ export const placeOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((d: unknown) => orderInputSchema.parse(d))
   .handler(async ({ data, context }) => {
+    // Antes de registar, confirma no fornecedor (quando o produto está ligado por API)
+    // que o artigo e o tamanho continuam disponíveis.
+    const ids = [...new Set(data.items.map((i) => i.product_id))];
+    const { data: refs, error: refsError } = await context.supabase.rpc("order_supplier_refs", {
+      _product_ids: ids,
+    });
+    if (!refsError && refs && refs.length > 0) {
+      const { checkLinesWithSuppliers } = await import("@/server/supplier-sync");
+      const { problems } = await checkLinesWithSuppliers(
+        refs,
+        data.items.map((i) => ({ product_id: i.product_id, size: i.size ?? null })),
+      );
+      if (problems.length > 0) {
+        const { data: names } = await context.supabase
+          .from("products")
+          .select("title")
+          .in("id", [...new Set(problems.map((p) => p.product_id))]);
+        const list = (names ?? []).map((n) => n.title).join(", ");
+        throw new Error(
+          `Esgotou entretanto no fornecedor: ${list || "um dos artigos"}. Retire-o do carrinho ou escolha outro tamanho.`,
+        );
+      }
+    }
+
     // O preço nunca vem do browser: a função place_order lê-o da tabela products.
     const { data: id, error } = await context.supabase.rpc("place_order", {
       _items: data.items,

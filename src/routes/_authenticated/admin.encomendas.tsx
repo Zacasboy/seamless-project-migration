@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { StatusPill } from "@/components/StatusPill";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { checkOrderSupplierStock } from "@/lib/suppliers.functions";
 import type { OrderStatus } from "@/integrations/supabase/types";
 import { euro } from "@/lib/cart";
 import {
@@ -201,6 +202,13 @@ function OrderDialog({ order, onClose }: { order: Order | null; onClose: () => v
     onError: (e: Error) => toast.error(`Não foi possível guardar: ${e.message}`),
   });
 
+  const stock = useMutation({
+    mutationFn: () => checkOrderSupplierStock({ data: { orderId: order!.id } }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const resetStock = stock.reset;
+  useEffect(() => resetStock(), [order?.id, resetStock]);
+
   const sh = order ? shippingOf(order.shipping) : {};
   return (
     <Dialog open={!!order} onOpenChange={(o) => !o && onClose()}>
@@ -261,6 +269,42 @@ function OrderDialog({ order, onClose }: { order: Order | null; onClose: () => v
                 </>
               )}
             </dl>
+
+            <div className="border p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-muted-foreground">
+                  Antes de confirmar, verifique se o fornecedor ainda tem os artigos.
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => stock.mutate()}
+                  disabled={stock.isPending}
+                >
+                  {stock.isPending ? "A verificar…" : "Verificar stock no fornecedor"}
+                </Button>
+              </div>
+              {stock.data && (
+                <div role="status" className="mt-3 space-y-1">
+                  {stock.data.linked === 0 ? (
+                    <p>Nenhum artigo desta encomenda está ligado a um fornecedor por API.</p>
+                  ) : stock.data.problems.length > 0 ? (
+                    <p className="text-destructive">
+                      Esgotado no fornecedor: {stock.data.problems.join(", ")}. Não confirme sem
+                      falar com o cliente.
+                    </p>
+                  ) : (
+                    <p className="text-success">Todos os artigos ligados estão disponíveis.</p>
+                  )}
+                  {stock.data.unverified.length > 0 && (
+                    <p className="text-muted-foreground">
+                      Sem resposta do fornecedor para: {stock.data.unverified.join(", ")}.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             <form
               className="space-y-4"

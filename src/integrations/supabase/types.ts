@@ -193,6 +193,32 @@ export type OpportunityRow = {
   created_at: string;
 };
 
+export type SupplierVariantRef = {
+  id: string;
+  sku: string | null;
+  size: string | null;
+  color: string | null;
+  stock: number | null;
+  available: boolean;
+};
+
+export type ProductSupplierLinkRow = {
+  id: string;
+  product_id: string;
+  supplier_id: string;
+  supplier_product_url: string | null;
+  supplier_sku: string | null;
+  supplier_cost: number | null;
+  supplier_currency: string | null;
+  availability_status: string | null;
+  last_checked_at: string | null;
+  external_product_id: string | null;
+  external_variants: Json;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type StoreSettingRow = {
   key: string;
   value: Json;
@@ -229,6 +255,7 @@ export type Database = {
       user_roles: Table<UserRoleRow, "user_id" | "role">;
       opportunity_findings: Table<OpportunityRow, "title" | "source">;
       store_settings: Table<StoreSettingRow, "key" | "value">;
+      product_supplier_links: Table<ProductSupplierLinkRow, "product_id" | "supplier_id">;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -239,6 +266,15 @@ export type Database = {
         Returns: string;
       };
       cancel_my_email_change_request: { Args: { _id: string }; Returns: undefined };
+      order_supplier_refs: {
+        Args: { _product_ids: string[] };
+        Returns: {
+          product_id: string;
+          provider_key: string;
+          external_product_id: string;
+          external_variants: Json;
+        }[];
+      };
     };
     Enums: { app_role: AppRole };
     CompositeTypes: { [_ in never]: never };
