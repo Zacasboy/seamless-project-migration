@@ -29,3 +29,7 @@ node --env-file=.env.local .output/server/index.mjs   # testar a build de produ�
 - Só a chave publicável (`sb_publishable_...`) vai para o browser. `SUPABASE_SERVICE_ROLE_KEY` é opcional e fica só no servidor.
 - As imagens de exemplo não foram migradas. Os produtos sem `image_url` mostram um fundo neutro com o nome. Para mostrar fotos, preencher `image_url` no painel com um URL https (por exemplo, do Supabase Storage).
 - A build gera um servidor Node por omissão. Para outro destino: `NITRO_PRESET=vercel bun run build`.
+
+## Publicação
+
+Ver [DEPLOY.md](DEPLOY.md) (Vercel, variáveis de ambiente, tarefa automática e domínio).

@@ -38,9 +38,29 @@ export default defineConfig(({ command, mode }) => {
           client: { files: ["**/server/**"], specifiers: ["server-only"] },
         },
       }),
-      // Sem preset fixo: Node por omissão; Vercel, Netlify, etc. são detetados no deploy.
+      // Sem preset fixo: Node por omissão; na Vercel o preset "vercel" é detetado sozinho.
       // Para forçar um destino: NITRO_PRESET=vercel bun run build
-      ...(command === "build" ? [nitro()] : []),
+      // As opções "vercel" só se aplicam ao preset Vercel (ver DEPLOY.md).
+      ...(command === "build"
+        ? [
+            nitro({
+              vercel: {
+                // Funções em Londres, junto à base de dados Supabase (eu-west-2).
+                functions: { regions: ["lhr1"] },
+                config: {
+                  version: 3,
+                  // Hobby: uma vez por dia. No Pro, definir VERCEL_CRON_SCHEDULE="*/15 * * * *".
+                  crons: [
+                    {
+                      path: "/api/cron/sync-stock",
+                      schedule: process.env["VERCEL_CRON_SCHEDULE"] || "0 5 * * *",
+                    },
+                  ],
+                },
+              },
+            }),
+          ]
+        : []),
       viteReact(),
     ],
   };
