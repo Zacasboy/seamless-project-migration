@@ -47,14 +47,11 @@ function Home() {
   const looks = byCat("Conjuntos");
   return (
     <StoreLayout>
-      <section className="mx-auto max-w-[1440px] px-4 pt-8 md:px-10 md:pt-12">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-foreground pb-5">
-          <div>
-            <p className="spec">Coleção outono 2026</p>
-            <h1 className="mt-2 max-w-[18ch] text-[clamp(2.4rem,5vw,4.25rem)] leading-[1.02]">
-              Malas, calçado e conjuntos para durar.
-            </h1>
-          </div>
+      <Banner />
+
+      <section className="mx-auto max-w-[1440px] px-4 pt-14 md:px-10 md:pt-20">
+        <div className="flex flex-wrap items-baseline justify-between gap-4 border-b border-foreground pb-3">
+          <h2 className="text-2xl md:text-3xl">Comprar por categoria</h2>
           <p className="num text-xs text-muted-foreground">{data.length} artigos em catálogo</p>
         </div>
         <div className="mt-6 grid gap-3 md:grid-cols-3 md:gap-6">
@@ -113,6 +110,66 @@ function Home() {
         </dl>
       </section>
     </StoreLayout>
+  );
+}
+
+// Banner de campanha entre o cabeçalho e os produtos.
+// A fotografia vem de VITE_CAMPAIGN_IMAGE_URL (https); sem ela mostra a superfície do tema.
+const CAMPAIGN_IMAGE = (import.meta.env["VITE_CAMPAIGN_IMAGE_URL"] as string | undefined)?.trim();
+
+function Banner() {
+  const img = CAMPAIGN_IMAGE?.startsWith("https://") ? CAMPAIGN_IMAGE : "";
+  return (
+    <section aria-labelledby="banner-titulo" className="border-b">
+      <div className="mx-auto grid max-w-[1440px] md:grid-cols-12">
+        <div className="flex flex-col justify-between gap-10 bg-foreground px-6 py-10 text-background md:col-span-5 md:px-10 md:py-14">
+          <p className="num text-xs uppercase tracking-wide opacity-70">Coleção outono 2026</p>
+          <div>
+            <h1
+              id="banner-titulo"
+              className="max-w-[16ch] text-[clamp(2.4rem,4.6vw,4rem)] leading-[1.02]"
+            >
+              Malas, calçado e conjuntos para durar.
+            </h1>
+            <p className="mt-5 max-w-[42ch] leading-relaxed opacity-80">
+              Pele, camurça e malha escolhidas para os meses frios, com envio para Portugal e para a
+              União Europeia.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/loja"
+              className="inline-flex h-12 items-center bg-background px-7 text-[0.9375rem] tracking-[0.02em] text-foreground hover:bg-background/90"
+            >
+              Ver a coleção
+            </Link>
+            <Link
+              to="/loja"
+              search={{ categoria: "Conjuntos" }}
+              className="inline-flex h-12 items-center border border-background/60 px-7 text-[0.9375rem] tracking-[0.02em] hover:bg-background/10"
+            >
+              Ver conjuntos
+            </Link>
+          </div>
+        </div>
+        <div className="relative min-h-[280px] md:col-span-7 md:min-h-[520px]">
+          {img ? (
+            <img
+              src={img}
+              alt="Campanha Pallessiani outono 2026"
+              fetchPriority="high"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            <div className="plate absolute inset-0 flex items-end p-5">
+              <span className="num text-[11px] uppercase tracking-wide">
+                Fotografia de campanha em breve
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
