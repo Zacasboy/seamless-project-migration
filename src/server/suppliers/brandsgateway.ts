@@ -27,6 +27,9 @@ export const brandsgatewayAdapter: SupplierAdapter = {
       "brandsgateway",
     );
   },
+  async ping() {
+    throw new SupplierError("Ligação por ativar", "brandsgateway");
+  },
   async fetchStock() {
     return [];
   },

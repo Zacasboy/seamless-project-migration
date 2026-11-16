@@ -41,6 +41,8 @@ export interface SupplierAdapter {
   parseRef(input: string): string | null;
   fetchProduct(externalId: string): Promise<SupplierProduct>;
   fetchStock(externalIds: string[]): Promise<StockResult[]>;
+  /** Pedido leve para confirmar que as credenciais funcionam. */
+  ping(): Promise<void>;
 }
 
 export class SupplierError extends Error {

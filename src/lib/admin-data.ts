@@ -172,16 +172,29 @@ export function computeChecks(s: Snapshot, migrationApplied: boolean | undefined
     to: "/admin/produtos",
   });
 
-  const fake = s.suppliers.filter(
-    (x) => x.connected && !["connected", "active"].includes(x.api_connection_status),
+  // Importadores selecionados: estado gravado pela verificação automática dos canais.
+  const selected = s.suppliers.filter((x) => x.connected);
+  const bad = selected.filter((x) =>
+    ["error", "not_applicable", "not_configured"].includes(x.api_connection_status ?? ""),
+  ).length;
+  const unchecked = selected.filter(
+    (x) =>
+      !["connected", "active", "csv", "error", "not_applicable", "not_configured"].includes(
+        x.api_connection_status ?? "",
+      ),
   ).length;
   add({
     id: "suppliers",
-    title: "Fornecedores «ligados» com integração ativa",
-    state: s.suppliers.length === 0 ? "none" : fake === 0 ? "pass" : "fail",
-    value: fake === 0 ? "Coerente" : `${fake} sem integração`,
-    limit: "0 incoerências",
-    action: "Rever fornecedores marcados como ligados sem integração configurada.",
+    title: "Importadores selecionados em ordem",
+    state: selected.length === 0 ? "none" : bad === 0 && unchecked === 0 ? "pass" : "fail",
+    value:
+      bad > 0
+        ? `${bad} a rever`
+        : unchecked > 0
+          ? `${unchecked} por verificar`
+          : `${selected.length} em ordem`,
+    limit: "0 a rever",
+    action: "Abrir Fornecedores: a verificação dos canais corre sozinha e indica o que corrigir.",
     to: "/admin/fornecedores",
   });
 

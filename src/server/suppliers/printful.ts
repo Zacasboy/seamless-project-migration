@@ -133,6 +133,9 @@ export const printfulAdapter: SupplierAdapter = {
     if (!/^\d+$/.test(id)) throw new SupplierError("Id de produto Printful inválido", "printful");
     return load(id);
   },
+  async ping() {
+    await pf<unknown>("/store/products?limit=1");
+  },
   async fetchStock(ids) {
     const out: StockResult[] = [];
     for (const id of ids) {

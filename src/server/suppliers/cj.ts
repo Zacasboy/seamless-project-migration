@@ -159,6 +159,10 @@ export const cjAdapter: SupplierAdapter = {
     if (!p?.pid) throw new SupplierError("Produto não encontrado na CJ", "cj", 404);
     return mapCjProduct(p);
   },
+  async ping() {
+    token = null;
+    await accessToken();
+  },
   async fetchStock(ids) {
     const out: StockResult[] = [];
     for (const pid of ids) {

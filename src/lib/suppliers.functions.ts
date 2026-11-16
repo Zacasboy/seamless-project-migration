@@ -241,3 +241,15 @@ export const checkOrderSupplierStock = createServerFn({ method: "POST" })
       unverified: [...new Set(res.unverified.map(title))],
     };
   });
+
+// Verificação automática dos canais selecionados; grava o estado de cada fornecedor.
+export const checkChannels = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { runChannelCheck } = await import("@/server/channel-check");
+    return {
+      checkedAt: new Date().toISOString(),
+      channels: await runChannelCheck(context.supabase, { write: true }),
+    };
+  });

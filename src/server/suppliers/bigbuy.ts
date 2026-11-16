@@ -153,6 +153,11 @@ export const bigbuyAdapter: SupplierAdapter = {
     };
     return product;
   },
+  async ping() {
+    const t = taxonomies()[0];
+    if (!t) throw new SupplierError("Defina BIGBUY_TAXONOMIES", "bigbuy");
+    await bb<unknown>(`/rest/catalog/products.json?parentTaxonomy=${t}`);
+  },
   async fetchStock(refs) {
     const out: StockResult[] = [];
     for (const ref of refs) {

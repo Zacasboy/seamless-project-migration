@@ -138,6 +138,7 @@ function ProductPage() {
             {[
               ["Categoria", p.category],
               ["Para", p.gender === "homem" ? "Homem" : p.gender === "mulher" ? "Mulher" : "Todos"],
+              ["Disponibilidade", STOCK_LABEL[p.stock_status] ?? "Confirmada após a encomenda"],
               ["Entrega", "Portugal e União Europeia"],
               ["Devolução", "14 dias após a receção"],
             ].map(([k, v]) => (
