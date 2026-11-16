@@ -44,7 +44,9 @@ function AuthPage() {
         toast.success("Registo submetido. Verifique o seu email para confirmar a conta.");
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível concluir a autenticação.");
+      toast.error(
+        error instanceof Error ? error.message : "Não foi possível concluir a autenticação.",
+      );
     } finally {
       setBusy(false);
     }
@@ -69,13 +71,26 @@ function AuthPage() {
         <form onSubmit={submit} className="mt-8 space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" autoComplete="email" required value={email}
-              onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div>
             <Label htmlFor="pw">Palavra-passe</Label>
-            <Input id="pw" type="password" autoComplete={mode === "in" ? "current-password" : "new-password"}
-              required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input
+              id="pw"
+              type="password"
+              autoComplete={mode === "in" ? "current-password" : "new-password"}
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
           <Button type="submit" className="w-full" disabled={busy}>
             {busy ? "A processar…" : mode === "in" ? "Entrar" : "Criar conta"}
@@ -84,8 +99,10 @@ function AuthPage() {
         <Button variant="outline" className="mt-3 w-full" onClick={google} disabled={busy}>
           Continuar com Google
         </Button>
-        <button className="mt-6 text-sm underline underline-offset-4"
-          onClick={() => setMode(mode === "in" ? "up" : "in")}>
+        <button
+          className="mt-6 text-sm underline underline-offset-4"
+          onClick={() => setMode(mode === "in" ? "up" : "in")}
+        >
           {mode === "in" ? "Ainda não tem conta? Criar conta" : "Já tem conta? Entrar"}
         </button>
       </div>

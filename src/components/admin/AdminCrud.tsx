@@ -95,7 +95,9 @@ export function AdminCrud({
       for (const f of fields)
         if (!f.readOnly && row[f.key] !== undefined) payload[f.key] = row[f.key];
       const t = supabase.from(table as any) as any;
-      const { error } = row.id ? await t.update(payload).eq("id", row.id) : await t.insert(payload);
+      const { error } = row["id"]
+        ? await t.update(payload).eq("id", row["id"])
+        : await t.insert(payload);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
@@ -181,11 +183,11 @@ export function AdminCrud({
             </thead>
             <tbody>
               {pageRows.map((r) => (
-                <tr key={r.id} className="border-t">
+                <tr key={r["id"]} className="border-t">
                   {columns.map((c) => (
                     <td key={c.key} className="px-3 py-2 align-top">
                       {c.render ? c.render(r) : String(r[c.key] ?? "—")}
-                      {c === columns[0] && r.is_demo && (
+                      {c === columns[0] && r["is_demo"] && (
                         <Badge variant="outline" className="ml-2">
                           Demo
                         </Badge>
@@ -206,7 +208,7 @@ export function AdminCrud({
                         size="icon"
                         variant="ghost"
                         aria-label="Remover"
-                        onClick={() => confirm("Remover este registo?") && del.mutate(r.id)}
+                        onClick={() => confirm("Remover este registo?") && del.mutate(r["id"])}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -245,7 +247,7 @@ export function AdminCrud({
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing?.id ? "Editar" : "Novo registo"}</DialogTitle>
+            <DialogTitle>{editing?.["id"] ? "Editar" : "Novo registo"}</DialogTitle>
           </DialogHeader>
           {editing && (
             <form

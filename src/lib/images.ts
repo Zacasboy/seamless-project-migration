@@ -1,19 +1,10 @@
-const modules = import.meta.glob<{ url: string }>("../assets/products/*.json", {
-  eager: true,
-  import: "default",
-});
+// Imagens de produto.
+// As imagens de exemplo do Lovable (/__l5e/assets-v1/...) não foram migradas.
+// Só são usados URLs guardados em products.image_url; sem URL, o componente
+// ProductImage mostra um fundo neutro com o nome do produto.
 
-const map: Record<string, string> = {};
-for (const [path, mod] of Object.entries(modules)) {
-  const key = path.split("/").pop()!.replace(".json", "");
-  map[key] = mod.url;
+export function productImage(p: { image_key?: string | null; image_url?: string | null }) {
+  const url = p.image_url?.trim();
+  if (!url || url.startsWith("/__l5e/")) return "";
+  return url;
 }
-
-export function productImage(p: { image_key: string | null; image_url: string | null }) {
-  if (p.image_url) return p.image_url;
-  if (p.image_key && map[p.image_key]) return map[p.image_key];
-  return "";
-}
-
-export const heroImage = () => map["p13"];
-export const heroImage2 = () => map["p10"];

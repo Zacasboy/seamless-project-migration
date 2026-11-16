@@ -6,6 +6,7 @@ import { StoreLayout } from "@/components/StoreLayout";
 import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { getProduct } from "@/lib/products.functions";
+import { ProductImage } from "@/components/ProductImage";
 import { productImage } from "@/lib/images";
 import { euro, useCart } from "@/lib/cart";
 import { productsQuery } from "./index";
@@ -54,12 +55,11 @@ function ProductPage() {
     if (p) trackView(`/produto/${slug}`, p.id);
   }, [slug, p]);
   if (!p) return null;
-  const img = productImage(p);
   const related = all.filter((x) => x.id !== p.id && x.category !== p.category).slice(0, 4);
   return (
     <StoreLayout>
       <div className="mx-auto grid max-w-7xl gap-10 px-6 py-12 md:grid-cols-2">
-        <img src={img} alt={p.title} className="aspect-[3/4] w-full object-cover" />
+        <ProductImage product={p} loading="eager" className="aspect-[3/4] w-full object-cover" />
         <div className="md:py-12">
           <p className="eyebrow">
             {p.category} · {p.gender}
@@ -76,7 +76,7 @@ function ProductPage() {
                 slug: p.slug,
                 title: p.title,
                 price: Number(p.price),
-                image: img,
+                image: productImage(p),
               });
               toast.success("Adicionado ao carrinho");
             }}

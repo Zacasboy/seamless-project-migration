@@ -23,16 +23,25 @@ function Page() {
     const { error } = await supabase
       .from("user_roles")
       .insert({ user_id: uid.trim(), role: "admin" });
-    if (error) return toast.error(`Não foi possível adicionar: ${error.message}`);
+    if (error) {
+      toast.error(`Não foi possível adicionar: ${error.message}`);
+      return;
+    }
     setUid("");
     toast.success("Administrador adicionado");
     qc.invalidateQueries({ queryKey: ["roles"] });
   }
   async function remove(id: string) {
     const admins = roles.data?.filter((r) => r.role === "admin").length ?? 0;
-    if (admins <= 1) return toast.error("Tem de existir pelo menos um administrador.");
+    if (admins <= 1) {
+      toast.error("Tem de existir pelo menos um administrador.");
+      return;
+    }
     const { error } = await supabase.from("user_roles").delete().eq("id", id);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     qc.invalidateQueries({ queryKey: ["roles"] });
   }
   return (

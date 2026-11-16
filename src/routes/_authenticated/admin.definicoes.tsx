@@ -5,7 +5,7 @@ export const Route = createFileRoute("/_authenticated/admin/definicoes")({ compo
 const ITEMS = [
   [
     "Pagamentos (Stripe)",
-    "Pendente — os pagamentos integrados requerem um plano pago do Lovable. O botão de checkout está desativado até lá.",
+    "Pendente — os pagamentos integrados ainda não estão configurados. O botão de checkout está desativado até lá.",
   ],
   [
     "Fornecedores",

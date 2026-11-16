@@ -18,7 +18,7 @@ function Page() {
         columns={[
           { key: "title", label: "Coleção" },
           { key: "slug", label: "Slug" },
-          { key: "published", label: "Publicada", render: (r) => (r.published ? "Sim" : "Não") },
+          { key: "published", label: "Publicada", render: (r) => (r["published"] ? "Sim" : "Não") },
         ]}
         fields={[
           { key: "title", label: "Título", required: true },
