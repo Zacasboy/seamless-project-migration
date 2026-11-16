@@ -1,26 +1,56 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
+// O carrinho vive no browser só para mostrar. Os preços finais são sempre
+// recalculados na base de dados quando a encomenda é feita.
 export type CartItem = {
+  key: string;
   id: string;
   slug: string;
   title: string;
   price: number;
   image: string;
+  size?: string | undefined;
   qty: number;
 };
 
 type Ctx = {
   items: CartItem[];
-  add: (item: Omit<CartItem, "qty">) => void;
-  remove: (id: string) => void;
-  setQty: (id: string, qty: number) => void;
+  add: (item: Omit<CartItem, "qty" | "key">) => void;
+  remove: (key: string) => void;
+  setQty: (key: string, qty: number) => void;
   clear: () => void;
   total: number;
   count: number;
+  ready: boolean;
 };
 
 const CartContext = createContext<Ctx | null>(null);
 const KEY = "pallessiani-cart";
+export const MAX_QTY = 10;
+
+const keyOf = (id: string, size?: string) => `${id}:${size ?? ""}`;
+const clampQty = (n: number) => Math.min(MAX_QTY, Math.max(1, Math.floor(n) || 1));
+
+function sanitize(raw: unknown): CartItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (i): i is CartItem =>
+        !!i &&
+        typeof i.id === "string" &&
+        typeof i.slug === "string" &&
+        typeof i.title === "string" &&
+        Number.isFinite(i.price),
+    )
+    .slice(0, 20)
+    .map((i) => ({
+      ...i,
+      image: typeof i.image === "string" ? i.image : "",
+      size: typeof i.size === "string" ? i.size : undefined,
+      key: keyOf(i.id, typeof i.size === "string" ? i.size : undefined),
+      qty: clampQty(i.qty),
+    }));
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -28,27 +58,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      setItems(JSON.parse(localStorage.getItem(KEY) || "[]"));
+      setItems(sanitize(JSON.parse(localStorage.getItem(KEY) || "[]")));
     } catch {
-      // Ignore invalid or unavailable saved cart data and start with an empty cart.
+      // Carrinho guardado inválido: começa vazio.
     }
     setReady(true);
   }, []);
   useEffect(() => {
-    if (ready) localStorage.setItem(KEY, JSON.stringify(items));
+    if (!ready) return;
+    try {
+      localStorage.setItem(KEY, JSON.stringify(items));
+    } catch {
+      // Sem armazenamento: o carrinho dura só esta visita.
+    }
   }, [items, ready]);
 
   const value: Ctx = {
     items,
+    ready,
     add: (item) =>
       setItems((prev) => {
-        const found = prev.find((i) => i.id === item.id);
-        if (found) return prev.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i));
-        return [...prev, { ...item, qty: 1 }];
+        const key = keyOf(item.id, item.size);
+        const found = prev.find((i) => i.key === key);
+        if (found) return prev.map((i) => (i.key === key ? { ...i, qty: clampQty(i.qty + 1) } : i));
+        return [...prev, { ...item, key, qty: 1 }].slice(0, 20);
       }),
-    remove: (id) => setItems((prev) => prev.filter((i) => i.id !== id)),
-    setQty: (id, qty) =>
-      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, qty: Math.max(1, qty) } : i))),
+    remove: (key) => setItems((prev) => prev.filter((i) => i.key !== key)),
+    setQty: (key, qty) =>
+      setItems((prev) => prev.map((i) => (i.key === key ? { ...i, qty: clampQty(qty) } : i))),
     clear: () => setItems([]),
     total: items.reduce((s, i) => s + i.price * i.qty, 0),
     count: items.reduce((s, i) => s + i.qty, 0),

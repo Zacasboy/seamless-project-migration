@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { AdminHeader } from "@/components/admin/AdminHeader";
 import {
   Dialog,
   DialogContent,
@@ -23,10 +24,42 @@ export type Field = {
   key: string;
   label: string;
   type?: "text" | "number" | "textarea" | "bool" | "select" | "list" | "datetime";
-  options?: string[];
+  options?: string[] | { value: string; label: string }[];
   required?: boolean;
   readOnly?: boolean;
+  hint?: string;
+  pattern?: RegExp;
+  patternMessage?: string;
+  maxLength?: number;
+  min?: number;
 };
+
+// Validação no browser antes de gravar; a base de dados volta a validar.
+export function validateRow(fields: Field[], row: Row) {
+  const errors: Record<string, string> = {};
+  for (const f of fields) {
+    if (f.readOnly) continue;
+    const v = row[f.key];
+    const empty = v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
+    if (f.required && empty && f.type !== "bool") errors[f.key] = "Campo obrigatório.";
+    else if (!empty && f.pattern && typeof v === "string" && !f.pattern.test(v))
+      errors[f.key] = f.patternMessage ?? "Formato inválido.";
+    else if (!empty && f.maxLength && typeof v === "string" && v.length > f.maxLength)
+      errors[f.key] = `Máximo de ${f.maxLength} caracteres.`;
+    else if (
+      !empty &&
+      f.type === "number" &&
+      (!Number.isFinite(Number(v)) || (f.min !== undefined && Number(v) < f.min))
+    )
+      errors[f.key] = f.min !== undefined ? `Valor mínimo: ${f.min}.` : "Número inválido.";
+  }
+  return errors;
+}
+
+const optValue = (o: string | { value: string; label: string }) =>
+  typeof o === "string" ? o : o.value;
+const optLabel = (o: string | { value: string; label: string }) =>
+  typeof o === "string" ? o : o.label;
 export type Column = { key: string; label: string; render?: (r: Row) => ReactNode };
 
 const PAGE = 15;
@@ -43,6 +76,8 @@ export function AdminCrud({
   orderBy = "created_at",
   canCreate = true,
   canDelete = true,
+  beforeSave,
+  emptyText = "Sem registos.",
 }: {
   table: string;
   title: string;
@@ -55,12 +90,22 @@ export function AdminCrud({
   orderBy?: string;
   canCreate?: boolean;
   canDelete?: boolean;
+  beforeSave?: (payload: Row, original: Row) => Row;
+  emptyText?: string;
 }) {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("");
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<Row | null>(null);
+  const [original, setOriginal] = useState<Row>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const openEditor = (r: Row) => {
+    setEditing(r);
+    setOriginal(r);
+    setErrors({});
+  };
 
   const query = useQuery({
     queryKey: ["admin", table],
@@ -91,9 +136,11 @@ export function AdminCrud({
 
   const save = useMutation({
     mutationFn: async (row: Row) => {
-      const payload: Row = {};
+      let payload: Row = {};
       for (const f of fields)
-        if (!f.readOnly && row[f.key] !== undefined) payload[f.key] = row[f.key];
+        if (!f.readOnly && row[f.key] !== undefined)
+          payload[f.key] = typeof row[f.key] === "string" ? row[f.key].trim() : row[f.key];
+      if (beforeSave) payload = beforeSave(payload, original);
       const t = supabase.from(table as any) as any;
       const { error } = row["id"]
         ? await t.update(payload).eq("id", row["id"])
@@ -113,6 +160,7 @@ export function AdminCrud({
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
+      setConfirmId(null);
       toast.success("Removido");
       qc.invalidateQueries({ queryKey: ["admin", table] });
     },
@@ -121,18 +169,18 @@ export function AdminCrud({
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-4xl">{title}</h1>
-          {intro && <div className="mt-1 max-w-3xl text-sm text-muted-foreground">{intro}</div>}
-        </div>
-        {canCreate && (
-          <Button onClick={() => setEditing({})}>
-            <Plus className="mr-1 h-4 w-4" />
-            Novo
-          </Button>
-        )}
-      </div>
+      <AdminHeader
+        title={title}
+        intro={intro}
+        actions={
+          canCreate && (
+            <Button onClick={() => openEditor({})}>
+              <Plus className="mr-1 h-4 w-4" />
+              Novo
+            </Button>
+          )
+        }
+      />
       <div className="mt-6 flex flex-wrap gap-3">
         <Input
           placeholder="Pesquisar…"
@@ -162,13 +210,19 @@ export function AdminCrud({
 
       <div className="mt-4 overflow-x-auto rounded-md border bg-card">
         {query.isLoading ? (
-          <p className="p-8 text-center text-muted-foreground">A carregar…</p>
+          <div className="space-y-2 p-4" aria-busy="true" aria-label="A carregar">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-10 animate-pulse bg-muted" />
+            ))}
+          </div>
         ) : query.isError ? (
-          <p className="p-8 text-center text-destructive">
-            Erro ao carregar: {(query.error as Error).message}
+          <p role="alert" className="p-8 text-destructive">
+            Não foi possível carregar: {(query.error as Error).message}
           </p>
         ) : rows.length === 0 ? (
-          <p className="p-8 text-center text-muted-foreground">Sem registos.</p>
+          <p className="p-8 text-muted-foreground">
+            {q || filter ? "Nenhum registo com este filtro." : emptyText}
+          </p>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-muted text-left">
@@ -198,7 +252,7 @@ export function AdminCrud({
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => setEditing(r)}
+                      onClick={() => openEditor(r)}
                       aria-label="Editar"
                     >
                       <Pencil className="h-4 w-4" />
@@ -208,7 +262,7 @@ export function AdminCrud({
                         size="icon"
                         variant="ghost"
                         aria-label="Remover"
-                        onClick={() => confirm("Remover este registo?") && del.mutate(r["id"])}
+                        onClick={() => setConfirmId(r["id"])}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -252,9 +306,17 @@ export function AdminCrud({
           {editing && (
             <form
               id="crud"
+              noValidate
               className="space-y-3"
               onSubmit={(e) => {
                 e.preventDefault();
+                const errs = validateRow(fields, editing);
+                setErrors(errs);
+                const first = Object.keys(errs)[0];
+                if (first) {
+                  document.getElementById(`f-${first}`)?.focus();
+                  return;
+                }
                 save.mutate(editing);
               }}
             >
@@ -263,14 +325,42 @@ export function AdminCrud({
                   key={f.key}
                   f={f}
                   value={editing[f.key]}
-                  onChange={(v) => setEditing({ ...editing, [f.key]: v })}
+                  error={errors[f.key]}
+                  onChange={(v) => {
+                    setEditing({ ...editing, [f.key]: v });
+                    if (errors[f.key]) setErrors({ ...errors, [f.key]: "" });
+                  }}
                 />
               ))}
             </form>
           )}
           <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setEditing(null)}>
+              Cancelar
+            </Button>
             <Button type="submit" form="crud" disabled={save.isPending}>
-              Guardar
+              {save.isPending ? "A guardar…" : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmId} onOpenChange={(o) => !o && setConfirmId(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remover este registo?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Esta ação não pode ser anulada.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmId(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={del.isPending}
+              onClick={() => confirmId && del.mutate(confirmId)}
+            >
+              {del.isPending ? "A remover…" : "Remover"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -279,8 +369,29 @@ export function AdminCrud({
   );
 }
 
-function FieldInput({ f, value, onChange }: { f: Field; value: any; onChange: (v: any) => void }) {
+function FieldInput({
+  f,
+  value,
+  onChange,
+  error,
+}: {
+  f: Field;
+  value: any;
+  onChange: (v: any) => void;
+  error?: string | undefined;
+}) {
   const id = `f-${f.key}`;
+  const describedBy = error ? `${id}-err` : f.hint ? `${id}-hint` : undefined;
+  const aria = { "aria-invalid": !!error || undefined, "aria-describedby": describedBy };
+  const note = error ? (
+    <p id={`${id}-err`} className="mt-1 text-sm text-destructive">
+      {error}
+    </p>
+  ) : f.hint ? (
+    <p id={`${id}-hint`} className="mt-1 text-xs text-muted-foreground">
+      {f.hint}
+    </p>
+  ) : null;
   if (f.type === "bool")
     return (
       <div className="flex items-center gap-2">
@@ -290,9 +401,13 @@ function FieldInput({ f, value, onChange }: { f: Field; value: any; onChange: (v
     );
   return (
     <div>
-      <Label htmlFor={id}>{f.label}</Label>
+      <Label htmlFor={id}>
+        {f.label}
+        {f.required && <span className="text-destructive"> *</span>}
+      </Label>
       {f.type === "textarea" ? (
         <Textarea
+          {...aria}
           id={id}
           value={value ?? ""}
           readOnly={f.readOnly}
@@ -300,22 +415,25 @@ function FieldInput({ f, value, onChange }: { f: Field; value: any; onChange: (v
         />
       ) : f.type === "select" ? (
         <select
+          {...aria}
           id={id}
-          className="h-9 w-full rounded-md border bg-card px-2 text-sm"
+          className="h-9 w-full rounded-md border bg-card px-2 text-sm aria-[invalid=true]:border-destructive"
           value={value ?? ""}
           disabled={f.readOnly}
-          required={f.required}
           onChange={(e) => onChange(e.target.value)}
         >
           <option value="" disabled>
             Escolher…
           </option>
           {f.options!.map((o) => (
-            <option key={o}>{o}</option>
+            <option key={optValue(o)} value={optValue(o)}>
+              {optLabel(o)}
+            </option>
           ))}
         </select>
       ) : f.type === "list" ? (
         <Input
+          {...aria}
           id={id}
           value={(value ?? []).join(", ")}
           readOnly={f.readOnly}
@@ -330,12 +448,14 @@ function FieldInput({ f, value, onChange }: { f: Field; value: any; onChange: (v
         />
       ) : (
         <Input
+          {...aria}
           id={id}
+          className="aria-[invalid=true]:border-destructive"
+          maxLength={f.maxLength}
           type={f.type === "number" ? "number" : "text"}
           step="any"
           value={value ?? ""}
           readOnly={f.readOnly}
-          required={f.required}
           onChange={(e) =>
             onChange(
               f.type === "number"
@@ -347,6 +467,7 @@ function FieldInput({ f, value, onChange }: { f: Field; value: any; onChange: (v
           }
         />
       )}
+      {note}
     </div>
   );
 }

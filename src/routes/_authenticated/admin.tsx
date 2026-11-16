@@ -1,56 +1,60 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { toast } from "sonner";
-import {
-  BarChart3,
-  Boxes,
-  Layers,
-  LayoutDashboard,
-  LogOut,
-  Megaphone,
-  Menu,
-  Radar,
-  Settings,
-  ShieldCheck,
-  Truck,
-  Users,
-  X,
-} from "lucide-react";
+import { ExternalLink, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { useChecks } from "@/lib/admin-data";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
-    meta: [{ title: "Painel — Pallessiani" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Painel — Pallessiani" }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: AdminLayout,
 });
 
-const NAV = [
-  { to: "/admin", label: "Visão geral", icon: LayoutDashboard, exact: true },
-  { to: "/admin/produtos", label: "Produtos", icon: Boxes },
-  { to: "/admin/colecoes", label: "Coleções", icon: Layers },
-  { to: "/admin/clientes", label: "Clientes", icon: Users },
-  { to: "/admin/fornecedores", label: "Fornecedores", icon: Truck },
-  { to: "/admin/canais", label: "Canais e anúncios", icon: Megaphone },
-  { to: "/admin/trafego", label: "Tráfego", icon: BarChart3 },
-  { to: "/admin/radar", label: "Radar de oportunidades", icon: Radar },
-  { to: "/admin/utilizadores", label: "Utilizadores", icon: ShieldCheck },
-  { to: "/admin/definicoes", label: "Definições", icon: Settings },
-] as const;
+type NavItem = { to: string; label: string; exact?: boolean; badge?: "checks" | "orders" };
+const NAV: { group: string; items: NavItem[] }[] = [
+  {
+    group: "Decidir",
+    items: [{ to: "/admin", label: "Visão geral", exact: true, badge: "checks" }],
+  },
+  {
+    group: "Vender",
+    items: [
+      { to: "/admin/encomendas", label: "Encomendas", badge: "orders" },
+      { to: "/admin/produtos", label: "Produtos" },
+      { to: "/admin/colecoes", label: "Coleções" },
+    ],
+  },
+  {
+    group: "Clientes e marketing",
+    items: [
+      { to: "/admin/clientes", label: "Clientes" },
+      { to: "/admin/canais", label: "Canais e anúncios" },
+      { to: "/admin/trafego", label: "Tráfego" },
+      { to: "/admin/radar", label: "Radar de oportunidades" },
+    ],
+  },
+  { group: "Operar", items: [{ to: "/admin/fornecedores", label: "Fornecedores" }] },
+  {
+    group: "Sustentar",
+    items: [
+      { to: "/admin/utilizadores", label: "Utilizadores" },
+      { to: "/admin/definicoes", label: "Definições" },
+    ],
+  },
+];
 
 function useAccess() {
   return useQuery({
     queryKey: ["access"],
     queryFn: async () => {
       const { data: u } = await supabase.auth.getUser();
-      if (!u.user) return { admin: false, ownerExists: true, email: "" };
-      const [{ data: admin }, { data: ownerExists }] = await Promise.all([
-        supabase.rpc("has_role", { _user_id: u.user.id, _role: "admin" }),
-        supabase.rpc("owner_exists"),
-      ]);
-      return { admin: !!admin, ownerExists: !!ownerExists, email: u.user.email ?? "" };
+      if (!u.user) return { admin: false, email: "" };
+      const { data: admin } = await supabase.rpc("has_role", {
+        _user_id: u.user.id,
+        _role: "admin",
+      });
+      return { admin: !!admin, email: u.user.email ?? "" };
     },
   });
 }
@@ -59,145 +63,138 @@ function AdminLayout() {
   const access = useAccess();
   const qc = useQueryClient();
   const nav = useNavigate();
-  const [open, setOpen] = useState(false);
 
   async function signOut() {
     await qc.cancelQueries();
     qc.clear();
     await supabase.auth.signOut();
-    nav({ to: "/auth", replace: true });
+    await nav({ to: "/auth", replace: true });
   }
 
   if (access.isLoading)
-    return <p className="p-10 text-center text-muted-foreground">A verificar acesso…</p>;
+    return (
+      <p className="p-10 text-center text-muted-foreground" aria-busy="true">
+        A verificar acesso…
+      </p>
+    );
   if (access.isError)
     return (
-      <p className="p-10 text-center text-destructive">Não foi possível verificar o acesso.</p>
+      <p role="alert" className="p-10 text-center text-destructive">
+        Não foi possível verificar o acesso. Atualize a página.
+      </p>
     );
-  if (!access.data!.admin)
-    return (
-      <NoAccess
-        ownerExists={access.data!.ownerExists}
-        email={access.data!.email}
-        onSignOut={signOut}
-      />
-    );
+  if (!access.data!.admin) return <NoAccess email={access.data!.email} onSignOut={signOut} />;
+  return <Shell email={access.data!.email} onSignOut={signOut} />;
+}
+
+function Shell({ email, onSignOut }: { email: string; onSignOut: () => void }) {
+  const { failed, snap, mig } = useChecks();
+  const pending = snap.data?.orders.filter((o) => o.status === "pending").length ?? 0;
+  const badge = (b?: NavItem["badge"]) => (b === "checks" ? failed : b === "orders" ? pending : 0);
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-sidebar text-sidebar-foreground transition-transform md:static md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <div className="flex h-16 items-center justify-between px-5">
-          <Link to="/" className="font-display text-xl tracking-[0.25em] uppercase">
+    <div className="grid min-h-screen grid-cols-[minmax(0,1fr)] bg-background md:grid-cols-[248px_minmax(0,1fr)]">
+      <aside className="flex flex-col gap-5 bg-sidebar px-0 py-4 text-sidebar-foreground md:sticky md:top-0 md:h-screen md:overflow-y-auto md:px-3 md:py-6">
+        <div className="px-4 md:px-3">
+          <Link to="/admin" className="font-display text-xl tracking-[0.28em] uppercase">
             Pallessiani
           </Link>
-          <button className="md:hidden" onClick={() => setOpen(false)} aria-label="Fechar menu">
-            <X className="h-5 w-5" />
-          </button>
+          <p className="mt-1 hidden text-xs text-sidebar-muted md:block">Painel de gestão</p>
         </div>
-        <nav className="space-y-1 px-3">
-          {NAV.map((n) => (
-            <Link
-              key={n.to}
-              to={n.to}
-              activeOptions={{ exact: "exact" in n }}
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent"
-              activeProps={{ className: "bg-sidebar-accent text-sidebar-primary" }}
-            >
-              <n.icon className="h-4 w-4" />
-              {n.label}
-            </Link>
+        <nav
+          aria-label="Secções do painel"
+          className="flex gap-1 overflow-x-auto px-4 md:flex-col md:gap-4 md:overflow-visible md:px-0"
+        >
+          {NAV.map((g) => (
+            <div key={g.group} className="flex gap-1 md:flex-col md:gap-0.5">
+              <span className="hidden px-3 pb-1 text-xs text-sidebar-muted md:block">
+                {g.group}
+              </span>
+              {g.items.map((n) => {
+                const count = badge(n.badge);
+                return (
+                  <Link
+                    key={n.to}
+                    to={n.to}
+                    activeOptions={{ exact: !!n.exact }}
+                    className="flex items-center justify-between gap-2 whitespace-nowrap rounded px-3 py-2 text-sm hover:bg-white/10"
+                    activeProps={{
+                      className:
+                        "!bg-sidebar-primary !text-sidebar-primary-foreground font-semibold",
+                      "aria-current": "page",
+                    }}
+                  >
+                    {n.label}
+                    {count > 0 && (
+                      <span
+                        className="num rounded-full bg-[#9B2C2C] px-1.5 text-[11px] font-semibold text-white"
+                        aria-label={`${count} a rever`}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           ))}
         </nav>
-        <div className="absolute bottom-4 left-0 right-0 px-5 text-xs opacity-70">
-          <p className="truncate">{access.data!.email}</p>
+        <div className="mt-auto hidden space-y-2 px-3 text-xs text-sidebar-muted md:block">
+          <p className="truncate" title={email}>
+            {email}
+          </p>
+          <Link to="/" className="flex items-center gap-2 hover:text-sidebar-foreground">
+            <ExternalLink className="h-3 w-3" /> Ver a loja
+          </Link>
           <button
-            onClick={signOut}
-            className="mt-2 flex items-center gap-2 hover:text-sidebar-primary"
+            onClick={onSignOut}
+            className="flex items-center gap-2 hover:text-sidebar-foreground"
           >
-            <LogOut className="h-3 w-3" />
-            Sair
+            <LogOut className="h-3 w-3" /> Sair
           </button>
         </div>
       </aside>
-      {open && (
-        <div
-          className="fixed inset-0 z-30 bg-foreground/40 md:hidden"
-          onClick={() => setOpen(false)}
-        />
-      )}
-      <div className="flex-1 min-w-0">
-        <header className="flex h-16 items-center gap-3 border-b px-6 md:hidden">
-          <button onClick={() => setOpen(true)} aria-label="Abrir menu">
-            <Menu className="h-5 w-5" />
-          </button>
-          <span className="font-display text-lg">Painel</span>
-        </header>
-        <main className="p-6 md:p-10">
+      <main className="min-w-0 px-4 pb-16 pt-8 md:px-10">
+        <div className="mx-auto flex max-w-[1180px] flex-col gap-8">
+          {mig.data && !mig.data.applied && (
+            <div
+              role="status"
+              className="flex flex-wrap items-center justify-between gap-3 rounded border border-[#E6CFA6] bg-[#F3E7D2] px-4 py-3 text-sm text-[#5A3A08]"
+            >
+              <span>
+                <b>A base de dados ainda não tem a atualização de 16/11.</b> Encomendas online,
+                Radar e alguns campos dos formulários ficam indisponíveis até ser aplicada.
+              </span>
+              <Link to="/admin/definicoes" className="font-semibold underline underline-offset-4">
+                Ver detalhes
+              </Link>
+            </div>
+          )}
           <Outlet />
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
 
-function NoAccess({
-  ownerExists,
-  email,
-  onSignOut,
-}: {
-  ownerExists: boolean;
-  email: string;
-  onSignOut: () => void;
-}) {
-  const qc = useQueryClient();
-  const [busy, setBusy] = useState(false);
-  async function claim() {
-    setBusy(true);
-    const { data, error } = await supabase.rpc("claim_owner");
-    setBusy(false);
-    if (error) {
-      toast.error(`Não foi possível concluir: ${error.message}`);
-      return;
-    }
-    if (!data) {
-      toast.error("Já existe um proprietário registado.");
-      return;
-    }
-    toast.success("Conta definida como proprietária.");
-    qc.invalidateQueries({ queryKey: ["access"] });
-  }
+function NoAccess({ email, onSignOut }: { email: string; onSignOut: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="max-w-md text-center">
         <p className="eyebrow">Painel Pallessiani</p>
-        {!ownerExists ? (
-          <>
-            <h1 className="mt-3 text-4xl">Configuração inicial</h1>
-            <p className="mt-3 text-muted-foreground">
-              Ainda não existe proprietário. Pode definir <b>{email}</b> como proprietário da loja.
-              Este passo só pode ser feito uma vez.
-            </p>
-            <Button className="mt-6" onClick={claim} disabled={busy}>
-              Tornar-me proprietário
-            </Button>
-          </>
-        ) : (
-          <>
-            <h1 className="mt-3 text-4xl">Sem acesso</h1>
-            <p className="mt-3 text-muted-foreground">
-              A conta {email} não tem permissões de administração. Peça ao proprietário para lhe
-              atribuir acesso.
-            </p>
-          </>
-        )}
-        <div className="mt-6 flex justify-center gap-3 text-sm">
-          <Link to="/" className="underline">
+        <h1 className="mt-3 text-4xl">Sem acesso ao painel</h1>
+        <p className="mt-3 text-muted-foreground">
+          A conta {email} não tem permissões de administração. Se precisa de acesso, peça ao
+          proprietário da loja.
+        </p>
+        <div className="mt-6 flex justify-center gap-4 text-sm">
+          <Link to="/conta" className="underline underline-offset-4">
+            A minha conta
+          </Link>
+          <Link to="/" className="underline underline-offset-4">
             Voltar à loja
           </Link>
-          <button onClick={onSignOut} className="underline">
+          <button onClick={onSignOut} className="underline underline-offset-4">
             Sair
           </button>
         </div>

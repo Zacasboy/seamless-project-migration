@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminCrud } from "@/components/admin/AdminCrud";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/StatusPill";
 
 export const Route = createFileRoute("/_authenticated/admin/radar")({ component: Page });
 
@@ -11,7 +11,7 @@ function useLiveFindings() {
     queryKey: ["radar-live"],
     queryFn: async () => {
       const [{ data: products }, { data: views }] = await Promise.all([
-        supabase.from("products").select("id,title,stock,price,cost,published"),
+        supabase.from("products").select("id,title,stock_status,price,cost,published"),
         supabase.from("page_views").select("product_id").not("product_id", "is", null).limit(5000),
       ]);
       const viewCount = new Map<string, number>();
@@ -20,10 +20,10 @@ function useLiveFindings() {
       const out: { title: string; evidence: string; action: string; confidence: string }[] = [];
       for (const p of products ?? []) {
         const vc = viewCount.get(p.id) ?? 0;
-        if (vc >= 3 && p.stock < 5)
+        if (vc >= 3 && (p.stock_status === "low_stock" || p.stock_status === "out_of_stock"))
           out.push({
             title: `${p.title}: procura com pouco stock`,
-            evidence: `${vc} visitas registadas, ${p.stock} unidades em stock`,
+            evidence: `${vc} visitas registadas, stock ${p.stock_status === "out_of_stock" ? "esgotado" : "baixo"}`,
             action: "Reabastecer antes de promover",
             confidence: vc >= 10 ? "Alta" : "Média",
           });
@@ -47,10 +47,10 @@ function useLiveFindings() {
 function Page() {
   const live = useLiveFindings();
   return (
-    <div className="space-y-10">
+    <div className="flex flex-col gap-10">
       <section>
-        <h1 className="text-4xl">Radar de oportunidades</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-4xl md:text-[2.6rem]">Radar de oportunidades</h1>
+        <p className="mt-2 text-muted-foreground">
           Calculado agora a partir de visitas reais da loja, stock e margens. Comparação entre
           canais aparece quando houver canais ligados.
         </p>
@@ -62,10 +62,12 @@ function Page() {
             </p>
           )}
           {live.data?.map((f, i) => (
-            <div key={i} className="rounded-md border bg-card p-4">
-              <div className="flex items-center justify-between">
+            <div key={i} className="rounded border bg-card p-5">
+              <div className="flex items-start justify-between gap-3">
                 <h3 className="font-display text-xl">{f.title}</h3>
-                <Badge variant="outline">Confiança {f.confidence}</Badge>
+                <StatusPill tone={f.confidence === "Alta" ? "fail" : "warn"}>
+                  Confiança {f.confidence}
+                </StatusPill>
               </div>
               <p className="mt-2 text-sm">
                 <b>Fonte:</b> eventos da loja + produtos

@@ -7,6 +7,7 @@ import { listProducts, type Product } from "@/lib/products.functions";
 import { ProductImage } from "@/components/ProductImage";
 import { Button } from "@/components/ui/button";
 import { trackView } from "@/lib/track";
+import { seo } from "@/lib/site";
 
 export const productsQuery = queryOptions({
   queryKey: ["products"],
@@ -14,20 +15,12 @@ export const productsQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Pallessiani — Malas, calçado e conjuntos" },
-      {
-        name: "description",
-        content: "Descubra malas, mocassins e conjuntos completos com estilo intemporal.",
-      },
-      { property: "og:title", content: "Pallessiani — Moda intemporal" },
-      {
-        property: "og:description",
-        content: "Malas, mocassins e conjuntos completos com estilo intemporal.",
-      },
-    ],
-  }),
+  head: () =>
+    seo({
+      description:
+        "Malas em pele, mocassins clássicos e conjuntos completos com estilo intemporal. Envio para Portugal e União Europeia.",
+      path: "/",
+    }),
   loader: ({ context }) => context.queryClient.ensureQueryData(productsQuery),
   component: Home,
 });
@@ -41,7 +34,7 @@ function Home() {
     <StoreLayout>
       <section className="mx-auto grid max-w-7xl gap-8 px-6 py-12 md:grid-cols-2 md:py-20">
         <div className="flex flex-col justify-center fade-up">
-          <p className="eyebrow">Coleção Outono · 2026</p>
+          <p className="eyebrow">Coleção outono 2026</p>
           <h1 className="mt-4 text-5xl leading-[1.05] md:text-7xl">
             Elegância que
             <br />
@@ -50,7 +43,7 @@ function Home() {
           <p className="mt-6 max-w-md text-muted-foreground">
             Malas em pele, mocassins clássicos e conjuntos completos, escolhidos para durar.
           </p>
-          <div className="mt-8 flex gap-3">
+          <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg">
               <Link to="/loja">Ver a loja</Link>
             </Button>

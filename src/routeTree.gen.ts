@@ -13,7 +13,15 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
+import { Route as ContaRouteImport } from './routes/conta'
+import { Route as ContactoRouteImport } from './routes/contacto'
+import { Route as EncomendarRouteImport } from './routes/encomendar'
 import { Route as LojaRouteImport } from './routes/loja'
+import { Route as ObrigadoRouteImport } from './routes/obrigado'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
@@ -21,6 +29,7 @@ import { Route as AuthenticatedAdminCanaisRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminColecoesRouteImport } from './routes/_authenticated/admin.colecoes'
 import { Route as AuthenticatedAdminDefinicoesRouteImport } from './routes/_authenticated/admin.definicoes'
+import { Route as AuthenticatedAdminEncomendasRouteImport } from './routes/_authenticated/admin.encomendas'
 import { Route as AuthenticatedAdminFornecedoresRouteImport } from './routes/_authenticated/admin.fornecedores'
 import { Route as AuthenticatedAdminProdutosRouteImport } from './routes/_authenticated/admin.produtos'
 import { Route as AuthenticatedAdminRadarRouteImport } from './routes/_authenticated/admin.radar'
@@ -46,9 +55,49 @@ const CarrinhoRoute = CarrinhoRouteImport.update({
   path: '/carrinho',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContaRoute = ContaRouteImport.update({
+  id: '/conta',
+  path: '/conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactoRoute = ContactoRouteImport.update({
+  id: '/contacto',
+  path: '/contacto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EncomendarRoute = EncomendarRouteImport.update({
+  id: '/encomendar',
+  path: '/encomendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LojaRoute = LojaRouteImport.update({
   id: '/loja',
   path: '/loja',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObrigadoRoute = ObrigadoRouteImport.update({
+  id: '/obrigado',
+  path: '/obrigado',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -90,6 +139,12 @@ const AuthenticatedAdminDefinicoesRoute =
     path: '/definicoes',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminEncomendasRoute =
+  AuthenticatedAdminEncomendasRouteImport.update({
+    id: '/encomendas',
+    path: '/encomendas',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminFornecedoresRoute =
   AuthenticatedAdminFornecedoresRouteImport.update({
     id: '/fornecedores',
@@ -124,13 +179,22 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
+  '/conta': typeof ContaRoute
+  '/contacto': typeof ContactoRoute
+  '/encomendar': typeof EncomendarRoute
   '/loja': typeof LojaRoute
+  '/obrigado': typeof ObrigadoRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/produto/$slug': typeof ProdutoSlugRoute
   '/admin/canais': typeof AuthenticatedAdminCanaisRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/colecoes': typeof AuthenticatedAdminColecoesRoute
   '/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
+  '/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
   '/admin/produtos': typeof AuthenticatedAdminProdutosRoute
   '/admin/radar': typeof AuthenticatedAdminRadarRoute
@@ -142,12 +206,21 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
+  '/conta': typeof ContaRoute
+  '/contacto': typeof ContactoRoute
+  '/encomendar': typeof EncomendarRoute
   '/loja': typeof LojaRoute
+  '/obrigado': typeof ObrigadoRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/termos': typeof TermosRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/admin/canais': typeof AuthenticatedAdminCanaisRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/colecoes': typeof AuthenticatedAdminColecoesRoute
   '/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
+  '/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
   '/admin/produtos': typeof AuthenticatedAdminProdutosRoute
   '/admin/radar': typeof AuthenticatedAdminRadarRoute
@@ -161,13 +234,22 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
+  '/conta': typeof ContaRoute
+  '/contacto': typeof ContactoRoute
+  '/encomendar': typeof EncomendarRoute
   '/loja': typeof LojaRoute
+  '/obrigado': typeof ObrigadoRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/termos': typeof TermosRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/produto/$slug': typeof ProdutoSlugRoute
   '/_authenticated/admin/canais': typeof AuthenticatedAdminCanaisRoute
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/colecoes': typeof AuthenticatedAdminColecoesRoute
   '/_authenticated/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
+  '/_authenticated/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/_authenticated/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
   '/_authenticated/admin/produtos': typeof AuthenticatedAdminProdutosRoute
   '/_authenticated/admin/radar': typeof AuthenticatedAdminRadarRoute
@@ -181,13 +263,22 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/carrinho'
+    | '/conta'
+    | '/contacto'
+    | '/encomendar'
     | '/loja'
+    | '/obrigado'
+    | '/privacidade'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/termos'
     | '/admin'
     | '/produto/$slug'
     | '/admin/canais'
     | '/admin/clientes'
     | '/admin/colecoes'
     | '/admin/definicoes'
+    | '/admin/encomendas'
     | '/admin/fornecedores'
     | '/admin/produtos'
     | '/admin/radar'
@@ -199,12 +290,21 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/carrinho'
+    | '/conta'
+    | '/contacto'
+    | '/encomendar'
     | '/loja'
+    | '/obrigado'
+    | '/privacidade'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/termos'
     | '/produto/$slug'
     | '/admin/canais'
     | '/admin/clientes'
     | '/admin/colecoes'
     | '/admin/definicoes'
+    | '/admin/encomendas'
     | '/admin/fornecedores'
     | '/admin/produtos'
     | '/admin/radar'
@@ -217,13 +317,22 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/carrinho'
+    | '/conta'
+    | '/contacto'
+    | '/encomendar'
     | '/loja'
+    | '/obrigado'
+    | '/privacidade'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/termos'
     | '/_authenticated/admin'
     | '/produto/$slug'
     | '/_authenticated/admin/canais'
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/colecoes'
     | '/_authenticated/admin/definicoes'
+    | '/_authenticated/admin/encomendas'
     | '/_authenticated/admin/fornecedores'
     | '/_authenticated/admin/produtos'
     | '/_authenticated/admin/radar'
@@ -237,7 +346,15 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CarrinhoRoute: typeof CarrinhoRoute
+  ContaRoute: typeof ContaRoute
+  ContactoRoute: typeof ContactoRoute
+  EncomendarRoute: typeof EncomendarRoute
   LojaRoute: typeof LojaRoute
+  ObrigadoRoute: typeof ObrigadoRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermosRoute: typeof TermosRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
 }
 
@@ -271,11 +388,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CarrinhoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conta': {
+      id: '/conta'
+      path: '/conta'
+      fullPath: '/conta'
+      preLoaderRoute: typeof ContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contacto': {
+      id: '/contacto'
+      path: '/contacto'
+      fullPath: '/contacto'
+      preLoaderRoute: typeof ContactoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/encomendar': {
+      id: '/encomendar'
+      path: '/encomendar'
+      fullPath: '/encomendar'
+      preLoaderRoute: typeof EncomendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/loja': {
       id: '/loja'
       path: '/loja'
       fullPath: '/loja'
       preLoaderRoute: typeof LojaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/obrigado': {
+      id: '/obrigado'
+      path: '/obrigado'
+      fullPath: '/obrigado'
+      preLoaderRoute: typeof ObrigadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
@@ -327,6 +500,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminDefinicoesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/encomendas': {
+      id: '/_authenticated/admin/encomendas'
+      path: '/encomendas'
+      fullPath: '/admin/encomendas'
+      preLoaderRoute: typeof AuthenticatedAdminEncomendasRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/fornecedores': {
       id: '/_authenticated/admin/fornecedores'
       path: '/fornecedores'
@@ -370,6 +550,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
   AuthenticatedAdminColecoesRoute: typeof AuthenticatedAdminColecoesRoute
   AuthenticatedAdminDefinicoesRoute: typeof AuthenticatedAdminDefinicoesRoute
+  AuthenticatedAdminEncomendasRoute: typeof AuthenticatedAdminEncomendasRoute
   AuthenticatedAdminFornecedoresRoute: typeof AuthenticatedAdminFornecedoresRoute
   AuthenticatedAdminProdutosRoute: typeof AuthenticatedAdminProdutosRoute
   AuthenticatedAdminRadarRoute: typeof AuthenticatedAdminRadarRoute
@@ -383,6 +564,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
   AuthenticatedAdminColecoesRoute: AuthenticatedAdminColecoesRoute,
   AuthenticatedAdminDefinicoesRoute: AuthenticatedAdminDefinicoesRoute,
+  AuthenticatedAdminEncomendasRoute: AuthenticatedAdminEncomendasRoute,
   AuthenticatedAdminFornecedoresRoute: AuthenticatedAdminFornecedoresRoute,
   AuthenticatedAdminProdutosRoute: AuthenticatedAdminProdutosRoute,
   AuthenticatedAdminRadarRoute: AuthenticatedAdminRadarRoute,
@@ -410,7 +592,15 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CarrinhoRoute: CarrinhoRoute,
+  ContaRoute: ContaRoute,
+  ContactoRoute: ContactoRoute,
+  EncomendarRoute: EncomendarRoute,
   LojaRoute: LojaRoute,
+  ObrigadoRoute: ObrigadoRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermosRoute: TermosRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
 }
 export const routeTree = rootRouteImport

@@ -10,41 +10,60 @@ function Page() {
   return (
     <AdminCrud
       table="customers"
-      title="Clientes (CRM)"
+      title="Clientes"
       intro={
         <>
-          Segmentos baseados apenas em dados observáveis (compras, visitas, consentimento) — indique
-          sempre o motivo do segmento. SWOT e PESTEL descrevem o{" "}
-          <b>contexto de mercado do segmento</b> e são hipóteses de negócio, não perfis pessoais.
-          RGPD: recolha só o necessário, respeite o consentimento e apague dados a pedido.
+          Segmentos baseados apenas em dados observáveis, como compras e visitas, e sempre com o
+          motivo indicado. RGPD: recolha só o necessário, registe a data de cada consentimento e
+          apague os dados quando o cliente o pedir.
         </>
       }
       searchKeys={["name", "email", "country"]}
       filterKey="segment"
       filterOptions={SEGMENTS}
+      emptyText="Ainda não há clientes registados."
+      beforeSave={(p, original) => {
+        // Regista quando o consentimento muda (prova exigida pelo RGPD).
+        if (
+          p["marketing_consent"] !== undefined &&
+          p["marketing_consent"] !== !!original["marketing_consent"]
+        )
+          return { ...p, consent_updated_at: new Date().toISOString() };
+        return p;
+      }}
       columns={[
         { key: "name", label: "Nome" },
         { key: "email", label: "Email" },
         { key: "segment", label: "Segmento" },
-        { key: "segment_reason", label: "Motivo do segmento" },
-        { key: "orders_count", label: "Encomendas" },
-        { key: "total_spent", label: "Total", render: (r) => euro(Number(r["total_spent"])) },
+        { key: "segment_reason", label: "Motivo" },
         {
-          key: "consent_marketing",
-          label: "Consentimento",
-          render: (r) => (r["consent_marketing"] ? "Sim" : "Não"),
+          key: "lifetime_value",
+          label: "Valor total",
+          render: (r) => <span className="num">{euro(Number(r["lifetime_value"] ?? 0))}</span>,
+        },
+        {
+          key: "marketing_consent",
+          label: "Marketing",
+          render: (r) =>
+            r["marketing_consent"]
+              ? `Sim${r["consent_updated_at"] ? `, desde ${String(r["consent_updated_at"]).slice(0, 10)}` : ", sem data"}`
+              : "Não",
         },
       ]}
       fields={[
-        { key: "name", label: "Nome", required: true },
-        { key: "email", label: "Email" },
-        { key: "country", label: "País" },
+        { key: "name", label: "Nome", required: true, maxLength: 120 },
+        {
+          key: "email",
+          label: "Email",
+          pattern: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+          patternMessage: "Email inválido.",
+        },
+        { key: "country", label: "País", maxLength: 60 },
         { key: "segment", label: "Segmento", type: "select", options: SEGMENTS },
-        { key: "segment_reason", label: "Motivo do segmento (dados observados)" },
-        { key: "orders_count", label: "N.º de encomendas", type: "number" },
-        { key: "total_spent", label: "Total gasto (€)", type: "number" },
-        { key: "consent_marketing", label: "Consentiu comunicações de marketing", type: "bool" },
-        { key: "notes", label: "Notas internas", type: "textarea" },
+        { key: "segment_reason", label: "Motivo do segmento (dados observados)", maxLength: 500 },
+        { key: "lifetime_value", label: "Valor total de compras (€)", type: "number", min: 0 },
+        { key: "marketing_consent", label: "Consentiu comunicações de marketing", type: "bool" },
+        { key: "notes", label: "Notas internas", type: "textarea", maxLength: 2000 },
         { key: "is_demo", label: "Registo de demonstração", type: "bool" },
       ]}
     />

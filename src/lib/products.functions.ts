@@ -4,7 +4,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 export type Product = Database["public"]["Tables"]["products"]["Row"];
 
-function publicClient() {
+export function publicClient() {
   const url = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
   const key =
     process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
@@ -38,7 +38,7 @@ export const listProducts = createServerFn({ method: "GET" }).handler(async () =
 });
 
 export const getProduct = createServerFn({ method: "GET" })
-  .inputValidator((d: { slug: string }) => ({ slug: String(d.slug).slice(0, 120) }))
+  .validator((d: { slug: string }) => ({ slug: String(d.slug).slice(0, 120) }))
   .handler(async ({ data }) => {
     const { data: row, error } = await publicClient()
       .from("products")

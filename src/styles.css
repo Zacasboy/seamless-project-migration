@@ -27,6 +27,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-gold: var(--gold);
   --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-sidebar-muted: var(--sidebar-muted);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -48,56 +50,61 @@
 }
 
 /*
- * Pallessiani — Palette editorial:
- * #B9D7D9 mist · #668284 eucalyptus · #2A2829 charcoal
- * #493736 cocoa · #7B3B3B oxblood
+ * Pallessiani — Soft Luxury
+ * Vanilla Silk #EEE2D4 · Alpine Oat #D7C6B5 · Warm Greige #B09D8F
+ * Cherry Velvet #471D1F · Bordeaux Noir #31181C
+ * Warm Greige só em linhas e decoração (contraste 2,3:1 sobre o fundo).
  */
 :root {
-  color-scheme: dark;
-  --radius: 0.4rem;
+  color-scheme: light;
+  --radius: 0.25rem;
 
-  --mist: #B9D7D9;
-  --eucalyptus: #668284;
-  --charcoal: #2A2829;
-  --cocoa: #493736;
-  --oxblood: #7B3B3B;
+  --vanilla-silk: #EEE2D4;
+  --alpine-oat: #D7C6B5;
+  --warm-greige: #B09D8F;
+  --cherry-velvet: #471D1F;
+  --bordeaux-noir: #31181C;
+  --paper: #F6F0E8;
+  --ivory: #FBF7F2;
 
-  --background: var(--charcoal);
-  --foreground: #F2EEEE;
-  --card: #332F30;
-  --card-foreground: #F2EEEE;
-  --popover: #332F30;
-  --popover-foreground: #F2EEEE;
-  --primary: var(--mist);
-  --primary-foreground: var(--charcoal);
-  --secondary: var(--eucalyptus);
-  --secondary-foreground: #FFFFFF;
-  --muted: #3B3536;
-  --muted-foreground: #C4B9B8;
-  --accent: var(--cocoa);
-  --accent-foreground: #FFFFFF;
-  --gold: var(--mist);
-  --success: var(--eucalyptus);
-  --destructive: var(--oxblood);
+  --background: var(--paper);
+  --foreground: var(--bordeaux-noir);
+  --card: var(--ivory);
+  --card-foreground: var(--bordeaux-noir);
+  --popover: var(--ivory);
+  --popover-foreground: var(--bordeaux-noir);
+  --primary: var(--cherry-velvet);
+  --primary-foreground: var(--paper);
+  --secondary: var(--vanilla-silk);
+  --secondary-foreground: var(--bordeaux-noir);
+  --muted: var(--vanilla-silk);
+  --muted-foreground: #6B5A52;
+  --accent: var(--vanilla-silk);
+  --accent-foreground: var(--bordeaux-noir);
+  --gold: var(--cherry-velvet);
+  --success: #3F6B4F;
+  --warning: #8A5A12;
+  --destructive: #9B2C2C;
   --destructive-foreground: #FFFFFF;
-  --border: #5B4A49;
-  --input: #5B4A49;
-  --ring: var(--mist);
+  --border: var(--alpine-oat);
+  --input: var(--alpine-oat);
+  --ring: var(--cherry-velvet);
 
-  --chart-1: var(--mist);
-  --chart-2: var(--eucalyptus);
-  --chart-3: var(--oxblood);
-  --chart-4: #A98780;
-  --chart-5: #AABFC0;
+  --chart-1: var(--cherry-velvet);
+  --chart-2: var(--warm-greige);
+  --chart-3: var(--alpine-oat);
+  --chart-4: #7A4A45;
+  --chart-5: #5E4B44;
 
-  --sidebar: #242223;
-  --sidebar-foreground: #F2EEEE;
-  --sidebar-primary: var(--mist);
-  --sidebar-primary-foreground: var(--charcoal);
-  --sidebar-accent: var(--cocoa);
-  --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #493F40;
-  --sidebar-ring: var(--mist);
+  --sidebar: var(--bordeaux-noir);
+  --sidebar-foreground: var(--vanilla-silk);
+  --sidebar-muted: var(--warm-greige);
+  --sidebar-primary: var(--vanilla-silk);
+  --sidebar-primary-foreground: var(--bordeaux-noir);
+  --sidebar-accent: var(--cherry-velvet);
+  --sidebar-accent-foreground: var(--vanilla-silk);
+  --sidebar-border: #4A2A2F;
+  --sidebar-ring: var(--alpine-oat);
 }
 
 @layer base {
@@ -112,9 +119,11 @@
   }
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
-    letter-spacing: -0.015em;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
   }
-  ::selection { background: rgb(185 215 217 / 28%); color: var(--foreground); }
+  ::selection { background: var(--alpine-oat); color: var(--bordeaux-noir); }
   :focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
 }
 
@@ -137,4 +146,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Espaço para a barra fixa de compra em telemóvel */
+@utility pb-sticky {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }

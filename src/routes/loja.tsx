@@ -5,6 +5,7 @@ import { StoreLayout } from "@/components/StoreLayout";
 import { ProductCard } from "@/components/ProductCard";
 import { productsQuery } from "./index";
 import { trackView } from "@/lib/track";
+import { seo } from "@/lib/site";
 
 const CATS = ["Todos", "Malas", "Calçado", "Conjuntos"];
 const GENDERS = ["todos", "mulher", "homem"];
@@ -16,14 +17,20 @@ export const Route = createFileRoute("/loja")({
     ...(typeof s["categoria"] === "string" ? { categoria: s["categoria"] } : {}),
     ...(typeof s["genero"] === "string" ? { genero: s["genero"] } : {}),
   }),
-  head: () => ({
-    meta: [
-      { title: "Loja — Pallessiani" },
-      { name: "description", content: "Todas as malas, calçado e conjuntos Pallessiani." },
-      { property: "og:title", content: "Loja — Pallessiani" },
-      { property: "og:description", content: "Todas as malas, calçado e conjuntos Pallessiani." },
-    ],
-  }),
+  head: ({ match }) => {
+    const cat = match.search.categoria;
+    const desc: Record<string, string> = {
+      Malas: "Malas Pallessiani em pele, de estilo intemporal.",
+      Calçado: "Calçado Pallessiani: mocassins clássicos para mulher e homem.",
+      Conjuntos: "Conjuntos completos Pallessiani, escolhidos para durar.",
+    };
+    return seo({
+      title: cat && desc[cat] ? cat : "Loja",
+      description:
+        (cat && desc[cat]) || "Todas as malas, calçado e conjuntos Pallessiani, num só lugar.",
+      path: cat && desc[cat] ? `/loja?categoria=${encodeURIComponent(cat)}` : "/loja",
+    });
+  },
   loader: ({ context }) => context.queryClient.ensureQueryData(productsQuery),
   component: Shop,
 });
@@ -40,12 +47,15 @@ function Shop() {
   return (
     <StoreLayout>
       <div className="mx-auto max-w-7xl px-6 py-12">
-        <h1 className="text-5xl">{categoria && categoria !== "Todos" ? categoria : "A loja"}</h1>
-        <div className="mt-6 flex flex-wrap gap-6 border-b pb-4 text-sm">
-          <div className="flex gap-4">
+        <h1 className="text-4xl md:text-5xl">
+          {categoria && categoria !== "Todos" ? categoria : "A loja"}
+        </h1>
+        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-b pb-4 text-sm">
+          <div className="-mx-1 flex gap-4 overflow-x-auto px-1">
             {CATS.map((c) => (
               <Link
                 key={c}
+                aria-current={(categoria ?? "Todos") === c ? "page" : undefined}
                 to="/loja"
                 search={{ categoria: c === "Todos" ? undefined : c, genero }}
                 className={

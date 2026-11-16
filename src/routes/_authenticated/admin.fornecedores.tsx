@@ -1,8 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminCrud } from "@/components/admin/AdminCrud";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/StatusPill";
 
 export const Route = createFileRoute("/_authenticated/admin/fornecedores")({ component: Page });
+
+const ACTIVE = ["connected", "active"];
+
+function Integration({ r }: { r: Record<string, unknown> }) {
+  const status = String(r["api_connection_status"] ?? "not_configured");
+  if (r["connected"] && ACTIVE.includes(status)) return <StatusPill tone="pass">Ligado</StatusPill>;
+  if (r["connected"]) return <StatusPill tone="fail">Marcado ligado, sem integração</StatusPill>;
+  return <StatusPill tone="none">Diretório</StatusPill>;
+}
 
 function Page() {
   return (
@@ -11,50 +20,56 @@ function Page() {
       title="Fornecedores"
       intro={
         <>
-          Lista de fornecedores candidatos. <b>Diretório</b> = apenas referência; <b>Ligado</b> só
-          aparece quando existir uma integração real autenticada (chave de API guardada em segredo
-          no servidor). Nenhum fornecedor está ligado de momento.
+          <b>Diretório</b> é só referência. <b>Ligado</b> aparece quando existir uma integração
+          real, com a chave de API guardada no servidor. Fornecedores marcados como ligados sem
+          integração são assinalados para revisão.
         </>
       }
       searchKeys={["name", "region", "specialty"]}
-      filterKey="api_support"
-      filterOptions={["API pública", "Sem API pública / manual"]}
+      filterKey="status"
+      filterOptions={["Disponível", "Indisponível"]}
       orderBy="name"
       columns={[
         {
           key: "name",
           label: "Fornecedor",
-          render: (r) => (
-            <a href={r["website"]} target="_blank" rel="noreferrer" className="underline">
-              {r["name"]}
-            </a>
-          ),
+          render: (r) =>
+            r["website"] ? (
+              <a
+                href={String(r["website"])}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4"
+              >
+                {String(r["name"])}
+              </a>
+            ) : (
+              String(r["name"])
+            ),
         },
         { key: "region", label: "Região" },
         { key: "specialty", label: "Especialidade" },
         { key: "status", label: "Disponibilidade" },
-        { key: "api_support", label: "Suporte API" },
+        { key: "api_connection_status", label: "Integração", render: (r) => <Integration r={r} /> },
         {
-          key: "integration_state",
-          label: "Integração",
-          render: (r) => (
-            <Badge variant={r["connected"] ? "default" : "outline"}>
-              {r["connected"] ? "Ligado" : r["integration_state"]}
-            </Badge>
-          ),
-        },
-        {
-          key: "last_sync_at",
+          key: "last_synced_at",
           label: "Última sincronização",
           render: (r) =>
-            r["last_sync_at"] ? new Date(r["last_sync_at"]).toLocaleString("pt-PT") : "Nunca",
+            r["last_synced_at"]
+              ? String(r["last_synced_at"]).slice(0, 16).replace("T", " ")
+              : "Nunca",
         },
       ]}
       fields={[
-        { key: "name", label: "Nome", required: true },
-        { key: "website", label: "Website" },
-        { key: "region", label: "Região" },
-        { key: "specialty", label: "Especialidade" },
+        { key: "name", label: "Nome", required: true, maxLength: 120 },
+        {
+          key: "website",
+          label: "Website",
+          pattern: /^https:\/\/\S+$/,
+          patternMessage: "Use um endereço que comece por https://",
+        },
+        { key: "region", label: "Região", maxLength: 80 },
+        { key: "specialty", label: "Especialidade", maxLength: 120 },
         {
           key: "status",
           label: "Disponibilidade",
@@ -62,17 +77,22 @@ function Page() {
           options: ["Disponível", "Indisponível"],
         },
         {
-          key: "api_support",
-          label: "Suporte API",
-          type: "select",
-          options: ["API pública", "Sem API pública / manual", "Desconhecido"],
+          key: "api_docs_url",
+          label: "Documentação da API",
+          pattern: /^https:\/\/\S+$/,
+          patternMessage: "Use um endereço que comece por https://",
         },
         {
-          key: "integration_state",
-          label: "Estado da integração",
-          type: "select",
-          options: ["Diretório", "Aguarda credenciais", "Em aprovação"],
+          key: "supported_operations",
+          label: "Operações suportadas (separadas por vírgula)",
+          type: "list",
         },
+        {
+          key: "connected",
+          label: "Marcado como ligado (só a integração real deve ligar)",
+          type: "bool",
+        },
+        { key: "api_connection_status", label: "Estado da integração", readOnly: true },
         { key: "is_demo", label: "Registo de demonstração", type: "bool" },
       ]}
     />

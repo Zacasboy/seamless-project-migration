@@ -5,26 +5,53 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminCrud } from "@/components/admin/AdminCrud";
+import { StatusPill } from "@/components/StatusPill";
 
 export const Route = createFileRoute("/_authenticated/admin/colecoes")({ component: Page });
 
+const STATUS = [
+  { value: "draft", label: "Rascunho" },
+  { value: "published", label: "Publicada" },
+  { value: "archived", label: "Arquivada" },
+];
+const TONE: Record<string, string> = { draft: "warn", published: "pass", archived: "none" };
+
 function Page() {
   return (
-    <div className="space-y-10">
+    <div className="flex flex-col gap-10">
       <AdminCrud
         table="collections"
-        title="Coleções e conjuntos"
-        searchKeys={["title", "slug"]}
+        title="Coleções"
+        intro="Agrupe peças por estação ou campanha. Só as coleções publicadas aparecem na loja."
+        searchKeys={["title", "slug", "season", "campaign"]}
         columns={[
           { key: "title", label: "Coleção" },
-          { key: "slug", label: "Slug" },
-          { key: "published", label: "Publicada", render: (r) => (r["published"] ? "Sim" : "Não") },
+          { key: "season", label: "Estação" },
+          { key: "campaign", label: "Campanha" },
+          {
+            key: "status",
+            label: "Estado",
+            render: (r) => (
+              <StatusPill tone={TONE[r["status"]] ?? "none"}>
+                {STATUS.find((s) => s.value === r["status"])?.label ?? r["status"]}
+              </StatusPill>
+            ),
+          },
         ]}
         fields={[
-          { key: "title", label: "Título", required: true },
-          { key: "slug", label: "Slug", required: true },
-          { key: "description", label: "Descrição", type: "textarea" },
-          { key: "published", label: "Publicada", type: "bool" },
+          { key: "title", label: "Título", required: true, maxLength: 200 },
+          {
+            key: "slug",
+            label: "Endereço (slug)",
+            required: true,
+            pattern: /^[a-z0-9]+(-[a-z0-9]+)*$/,
+            patternMessage: "Só minúsculas, números e hífens.",
+            maxLength: 120,
+          },
+          { key: "description", label: "Descrição", type: "textarea", maxLength: 10000 },
+          { key: "season", label: "Estação", maxLength: 100 },
+          { key: "campaign", label: "Campanha", maxLength: 200 },
+          { key: "status", label: "Estado", type: "select", options: STATUS, required: true },
           { key: "is_demo", label: "Registo de demonstração", type: "bool" },
         ]}
       />
@@ -36,9 +63,11 @@ function Page() {
 function ItemsEditor() {
   const qc = useQueryClient();
   const [cid, setCid] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
   const cols = useQuery({
-    queryKey: ["admin", "collections"],
-    queryFn: async () => (await supabase.from("collections").select("*")).data ?? [],
+    queryKey: ["admin", "collections-lite"],
+    queryFn: async () =>
+      (await supabase.from("collections").select("id,title").order("title")).data ?? [],
   });
   const prods = useQuery({
     queryKey: ["admin", "products-lite"],
@@ -46,44 +75,56 @@ function ItemsEditor() {
       (await supabase.from("products").select("id,title").order("title")).data ?? [],
   });
   const items = useQuery({
-    queryKey: ["items", cid],
+    queryKey: ["admin", "items", cid],
     enabled: !!cid,
-    queryFn: async () =>
-      new Set(
-        (
-          (await supabase.from("collection_items").select("product_id").eq("collection_id", cid))
-            .data ?? []
-        ).map((r) => r.product_id),
-      ),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("collection_items")
+        .select("product_id,position")
+        .eq("collection_id", cid);
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
   });
+  const selected = new Set((items.data ?? []).map((r) => r.product_id));
+
   async function toggle(pid: string, on: boolean) {
+    setBusy(pid);
+    const next = Math.max(-1, ...(items.data ?? []).map((r) => r.position)) + 1;
     const { error } = on
-      ? await supabase.from("collection_items").insert({ collection_id: cid, product_id: pid })
+      ? await supabase
+          .from("collection_items")
+          .insert({ collection_id: cid, product_id: pid, position: next })
       : await supabase
           .from("collection_items")
           .delete()
           .eq("collection_id", cid)
           .eq("product_id", pid);
-    if (error) toast.error(error.message);
-    qc.invalidateQueries({ queryKey: ["items", cid] });
+    setBusy(null);
+    if (error) toast.error(`Não foi possível atualizar: ${error.message}`);
+    qc.invalidateQueries({ queryKey: ["admin", "items", cid] });
   }
+
   return (
-    <section>
-      <h2 className="text-2xl">Peças da coleção</h2>
-      <select
-        className="mt-3 h-9 rounded-md border bg-card px-2 text-sm"
-        value={cid}
-        onChange={(e) => setCid(e.target.value)}
-      >
-        <option value="">Escolher coleção…</option>
-        {cols.data?.map((c: any) => (
-          <option key={c.id} value={c.id}>
-            {c.title}
-          </option>
-        ))}
-      </select>
+    <section className="flex flex-col gap-4">
+      <h2 className="text-3xl">Peças da coleção</h2>
+      <label className="flex max-w-sm flex-col gap-1 text-sm">
+        Coleção
+        <select
+          className="h-10 rounded border bg-card px-3"
+          value={cid}
+          onChange={(e) => setCid(e.target.value)}
+        >
+          <option value="">Escolher coleção…</option>
+          {cols.data?.map((c: any) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </select>
+      </label>
       {cid && (
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {prods.data?.map((p) => (
             <label
               key={p.id}
@@ -91,7 +132,9 @@ function ItemsEditor() {
             >
               <input
                 type="checkbox"
-                checked={items.data?.has(p.id) ?? false}
+                className="accent-[var(--cherry-velvet)]"
+                checked={selected.has(p.id)}
+                disabled={busy === p.id || items.isLoading}
                 onChange={(e) => toggle(p.id, e.target.checked)}
               />
               {p.title}
