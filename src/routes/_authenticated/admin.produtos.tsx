@@ -2,7 +2,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminCrud } from "@/components/admin/AdminCrud";
 import { Badge } from "@/components/ui/badge";
-import { productImage } from "@/lib/images";
+import { ProductImage } from "@/components/ProductImage";
 import { euro } from "@/lib/cart";
 
 export const Route = createFileRoute("/_authenticated/admin/produtos")({ component: Page });
@@ -22,21 +22,28 @@ function Page() {
           label: "Produto",
           render: (r) => (
             <span className="flex items-center gap-2">
-              <img src={productImage(r as any)} alt="" className="h-10 w-8 object-cover" />
-              {r.title}
+              <span className="h-10 w-8 shrink-0 overflow-hidden">
+                <ProductImage
+                  product={r as any}
+                  alt=""
+                  className="h-10 w-8 object-cover [&>span]:hidden"
+                />
+              </span>
+              {r["title"]}
             </span>
           ),
         },
         { key: "category", label: "Categoria" },
         { key: "gender", label: "Género" },
-        { key: "price", label: "Preço", render: (r) => euro(Number(r.price)) },
+        { key: "price", label: "Preço", render: (r) => euro(Number(r["price"])) },
         {
           key: "stock",
           label: "Stock",
-          render: (r) => (r.stock > 0 ? r.stock : <Badge variant="destructive">Esgotado</Badge>),
+          render: (r) =>
+            r["stock"] > 0 ? r["stock"] : <Badge variant="destructive">Esgotado</Badge>,
         },
         { key: "supplier", label: "Fornecedor" },
-        { key: "published", label: "Publicado", render: (r) => (r.published ? "Sim" : "Não") },
+        { key: "published", label: "Publicado", render: (r) => (r["published"] ? "Sim" : "Não") },
       ]}
       fields={[
         { key: "title", label: "Título", required: true },

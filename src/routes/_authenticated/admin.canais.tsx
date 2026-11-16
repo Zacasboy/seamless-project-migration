@@ -24,18 +24,21 @@ function Page() {
         {
           key: "integration_state",
           label: "Integração",
-          render: (r) => <Badge variant="outline">{r.integration_state}</Badge>,
+          render: (r) => <Badge variant="outline">{r["integration_state"]}</Badge>,
         },
         { key: "status", label: "Estado" },
-        { key: "budget", label: "Orçamento", render: (r) => euro(Number(r.budget)) },
-        { key: "spend", label: "Gasto", render: (r) => m(r, euro(Number(r.spend))) },
-        { key: "clicks", label: "Cliques", render: (r) => m(r, String(r.clicks)) },
-        { key: "conversions", label: "Conversões", render: (r) => m(r, String(r.conversions)) },
+        { key: "budget", label: "Orçamento", render: (r) => euro(Number(r["budget"])) },
+        { key: "spend", label: "Gasto", render: (r) => m(r, euro(Number(r["spend"]))) },
+        { key: "clicks", label: "Cliques", render: (r) => m(r, String(r["clicks"])) },
+        { key: "conversions", label: "Conversões", render: (r) => m(r, String(r["conversions"])) },
         {
           key: "roas",
           label: "ROAS",
           render: (r) =>
-            m(r, Number(r.spend) > 0 ? (Number(r.revenue) / Number(r.spend)).toFixed(2) : "—"),
+            m(
+              r,
+              Number(r["spend"]) > 0 ? (Number(r["revenue"]) / Number(r["spend"])).toFixed(2) : "—",
+            ),
         },
       ]}
       fields={[

@@ -28,11 +28,11 @@ function Page() {
         { key: "segment", label: "Segmento" },
         { key: "segment_reason", label: "Motivo do segmento" },
         { key: "orders_count", label: "Encomendas" },
-        { key: "total_spent", label: "Total", render: (r) => euro(Number(r.total_spent)) },
+        { key: "total_spent", label: "Total", render: (r) => euro(Number(r["total_spent"])) },
         {
           key: "consent_marketing",
           label: "Consentimento",
-          render: (r) => (r.consent_marketing ? "Sim" : "Não"),
+          render: (r) => (r["consent_marketing"] ? "Sim" : "Não"),
         },
       ]}
       fields={[

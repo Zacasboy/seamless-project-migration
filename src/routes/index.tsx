@@ -3,8 +3,8 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { StoreLayout } from "@/components/StoreLayout";
 import { ProductCard } from "@/components/ProductCard";
-import { listProducts } from "@/lib/products.functions";
-import { heroImage, heroImage2 } from "@/lib/images";
+import { listProducts, type Product } from "@/lib/products.functions";
+import { ProductImage } from "@/components/ProductImage";
 import { Button } from "@/components/ui/button";
 import { trackView } from "@/lib/track";
 
@@ -62,16 +62,20 @@ function Home() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <img
-            src={heroImage()}
-            alt="Mala castanha com acessórios dourados"
-            className="aspect-[3/4] w-full object-cover"
-          />
-          <img
-            src={heroImage2()}
-            alt="Look de inverno com blusão castanho"
-            className="mt-12 aspect-[3/4] w-full object-cover"
-          />
+          {bags[0] && (
+            <ProductImage
+              product={bags[0]}
+              loading="eager"
+              className="aspect-[3/4] w-full object-cover"
+            />
+          )}
+          {looks[0] && (
+            <ProductImage
+              product={looks[0]}
+              loading="eager"
+              className="mt-12 aspect-[3/4] w-full object-cover"
+            />
+          )}
         </div>
       </section>
 
@@ -89,7 +93,7 @@ function Section({
 }: {
   title: string;
   eyebrow: string;
-  items: ReturnType<typeof useSuspenseQuery<typeof productsQuery>>["data"];
+  items: Product[];
   cat: string;
 }) {
   return (

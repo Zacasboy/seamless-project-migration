@@ -158,8 +158,14 @@ function NoAccess({
     setBusy(true);
     const { data, error } = await supabase.rpc("claim_owner");
     setBusy(false);
-    if (error) return toast.error(`Não foi possível concluir: ${error.message}`);
-    if (!data) return toast.error("Já existe um proprietário registado.");
+    if (error) {
+      toast.error(`Não foi possível concluir: ${error.message}`);
+      return;
+    }
+    if (!data) {
+      toast.error("Já existe um proprietário registado.");
+      return;
+    }
     toast.success("Conta definida como proprietária.");
     qc.invalidateQueries({ queryKey: ["access"] });
   }

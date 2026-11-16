@@ -1,16 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import type { Product } from "@/lib/products.functions";
-import { productImage } from "@/lib/images";
+import { ProductImage } from "@/components/ProductImage";
 import { euro } from "@/lib/cart";
 
 export function ProductCard({ p }: { p: Product }) {
   return (
     <Link to="/produto/$slug" params={{ slug: p.slug }} className="group block">
       <div className="aspect-[3/4] overflow-hidden bg-muted">
-        <img
-          src={productImage(p)}
-          alt={p.title}
-          loading="lazy"
+        <ProductImage
+          product={p}
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
       </div>

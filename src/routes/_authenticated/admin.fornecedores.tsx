@@ -25,8 +25,8 @@ function Page() {
           key: "name",
           label: "Fornecedor",
           render: (r) => (
-            <a href={r.website} target="_blank" rel="noreferrer" className="underline">
-              {r.name}
+            <a href={r["website"]} target="_blank" rel="noreferrer" className="underline">
+              {r["name"]}
             </a>
           ),
         },
@@ -38,8 +38,8 @@ function Page() {
           key: "integration_state",
           label: "Integração",
           render: (r) => (
-            <Badge variant={r.connected ? "default" : "outline"}>
-              {r.connected ? "Ligado" : r.integration_state}
+            <Badge variant={r["connected"] ? "default" : "outline"}>
+              {r["connected"] ? "Ligado" : r["integration_state"]}
             </Badge>
           ),
         },
@@ -47,7 +47,7 @@ function Page() {
           key: "last_sync_at",
           label: "Última sincronização",
           render: (r) =>
-            r.last_sync_at ? new Date(r.last_sync_at).toLocaleString("pt-PT") : "Nunca",
+            r["last_sync_at"] ? new Date(r["last_sync_at"]).toLocaleString("pt-PT") : "Nunca",
         },
       ]}
       fields={[

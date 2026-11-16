@@ -5,8 +5,15 @@ import type { Database } from "@/integrations/supabase/types";
 export type Product = Database["public"]["Tables"]["products"]["Row"];
 
 function publicClient() {
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
-  return createClient<Database>(process.env["SUPABASE_URL"]!, key, {
+  const url = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
+  const key =
+    process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+  if (!url || !key) {
+    throw new Error(
+      "Faltam SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY (ou as versões VITE_) em .env.local ou no servidor.",
+    );
+  }
+  return createClient<Database>(url, key, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
     global: {
       fetch: (input, init) => {

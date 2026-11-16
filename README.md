@@ -1,24 +1,31 @@
-# Seamless Project Migration
+# Pallessiani
 
-/skill:migrate-external-project Source: code archive. Migrate the attached project into Lovable.
+Loja e painel de gestão em TanStack Start com Supabase (projeto `pallessiani`). Não depende do Lovable.
 
-This project was built with [Lovable](https://lovable.dev).
+## Arrancar localmente
 
-## Build with Lovable
+1. Instalar dependências com Bun (o projeto usa `bun.lock`; não usar `npm install`):
+   ```bash
+   bun install
+   ```
+2. Criar `.env.local` a partir de `.env.example` e preencher a chave publicável do Supabase.
+3. Arrancar:
+   ```bash
+   bun run dev
+   ```
+   A app abre em http://localhost:8080.
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/bad38408-7ace-4328-a4a2-e6145334d0da).
+## Verificar
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+```bash
+bun run lint
+bun run test
+bun run build
+node --env-file=.env.local .output/server/index.mjs   # testar a build de produção (porta 3000)
 ```
+
+## Notas
+
+- Só a chave publicável (`sb_publishable_...`) vai para o browser. `SUPABASE_SERVICE_ROLE_KEY` é opcional e fica só no servidor.
+- As imagens de exemplo não foram migradas. Os produtos sem `image_url` mostram um fundo neutro com o nome. Para mostrar fotos, preencher `image_url` no painel com um URL https (por exemplo, do Supabase Storage).
+- A build gera um servidor Node por omissão. Para outro destino: `NITRO_PRESET=vercel bun run build`.
