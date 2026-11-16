@@ -5,11 +5,9 @@ import { StoreLayout } from "@/components/StoreLayout";
 import { ProductCard } from "@/components/ProductCard";
 import { listProducts, type Product } from "@/lib/products.functions";
 import { ProductImage } from "@/components/ProductImage";
-import { Button } from "@/components/ui/button";
 import { trackView } from "@/lib/track";
 import { seo } from "@/lib/site";
 import { euro } from "@/lib/cart";
-import { specLine } from "@/lib/spec";
 
 export const productsQuery = queryOptions({
   queryKey: ["products"],
@@ -27,90 +25,106 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const GENDER: Record<string, string> = { mulher: "Mulher", homem: "Homem", unissexo: "Unissexo" };
+const CATS = [
+  { cat: "Malas", line: "Pele lisa, granulada e envernizada" },
+  { cat: "Calçado", line: "Mocassins para mulher e homem" },
+  { cat: "Conjuntos", line: "Looks completos, prontos a vestir" },
+] as const;
+
+const SERVICE: [string, string][] = [
+  ["Entrega", "Portugal e União Europeia"],
+  ["Devolução", "14 dias após a receção"],
+  ["Pagamento", "Combinado consigo depois de confirmarmos a encomenda"],
+];
 
 function Home() {
   const { data } = useSuspenseQuery(productsQuery);
   useEffect(() => trackView("/"), []);
-  const bags = data.filter((p) => p.category === "Malas");
-  const shoes = data.filter((p) => p.category === "Calçado");
-  const looks = data.filter((p) => p.category === "Conjuntos");
-  const hero = [...bags].sort((a, b) => Number(b.price) - Number(a.price))[0] ?? data[0];
+  const byCat = (c: string) => data.filter((p) => p.category === c);
+  const latest = [...data]
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))
+    .slice(0, 8);
+  const looks = byCat("Conjuntos");
   return (
     <StoreLayout>
-      {hero && <Hero p={hero} />}
-      <Section title="Malas" items={bags} cat="Malas" />
-      <Section title="Calçado" items={shoes} cat="Calçado" />
-      <Section title="Conjuntos" items={looks} cat="Conjuntos" />
+      <section className="mx-auto max-w-[1440px] px-4 pt-8 md:px-10 md:pt-12">
+        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-foreground pb-5">
+          <div>
+            <p className="spec">Coleção outono 2026</p>
+            <h1 className="mt-2 max-w-[18ch] text-[clamp(2.4rem,5vw,4.25rem)] leading-[1.02]">
+              Malas, calçado e conjuntos para durar.
+            </h1>
+          </div>
+          <p className="num text-xs text-muted-foreground">{data.length} artigos em catálogo</p>
+        </div>
+        <div className="mt-6 grid gap-3 md:grid-cols-3 md:gap-6">
+          {CATS.map(({ cat, line }) => {
+            const items = byCat(cat);
+            const lead = items[0];
+            const from = items.length ? Math.min(...items.map((p) => Number(p.price))) : 0;
+            return (
+              <Link
+                key={cat}
+                to="/loja"
+                search={{ categoria: cat }}
+                className="product-card group flex flex-col !text-left"
+              >
+                <div className="aspect-[4/5] overflow-hidden md:aspect-[3/4]">
+                  {lead ? (
+                    <ProductImage
+                      product={lead}
+                      loading="eager"
+                      alt={`${cat}: ${lead.title}`}
+                      sizes="(min-width: 768px) 33vw, 100vw"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                    />
+                  ) : (
+                    <div className="plate h-full w-full" />
+                  )}
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1 p-4 md:p-5">
+                  <h2 className="text-2xl group-hover:underline group-hover:underline-offset-4">
+                    {cat}
+                  </h2>
+                  <span className="num text-xs text-muted-foreground">{items.length} artigos</span>
+                  <p className="spec">{line}</p>
+                  {items.length > 0 && <span className="num text-xs">desde {euro(from)}</span>}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <Section title="Novidades" items={latest} link={{}} />
+      <Section title="Conjuntos completos" items={looks} link={{ categoria: "Conjuntos" }} />
+
+      <section className="mx-auto max-w-[1440px] px-4 pt-20 md:px-10">
+        <dl className="grid border-y border-foreground md:grid-cols-3">
+          {SERVICE.map(([k, v]) => (
+            <div
+              key={k}
+              className="border-b py-5 last:border-b-0 md:border-b-0 md:border-r md:px-6 md:first:pl-0 md:last:border-r-0"
+            >
+              <dt className="spec">{k}</dt>
+              <dd className="mt-1 text-sm">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
     </StoreLayout>
   );
 }
 
-function Hero({ p }: { p: Product }) {
-  const rows: [string, string][] = [
-    ["Material", specLine(p)],
-    ["Categoria", p.category],
-    ["Para", GENDER[p.gender ?? ""] ?? "—"],
-    ["Entrega", "Portugal e União Europeia"],
-  ];
-  return (
-    <section className="mx-auto grid max-w-[1440px] gap-6 px-4 pt-6 md:grid-cols-12 md:px-10 md:pt-10">
-      <Link
-        to="/produto/$slug"
-        params={{ slug: p.slug }}
-        className="block md:col-span-7"
-        aria-label={`Ver ${p.title}`}
-      >
-        <ProductImage
-          product={p}
-          loading="eager"
-          sizes="(min-width: 768px) 58vw, 100vw"
-          className="aspect-[4/5] w-full object-cover md:aspect-auto md:h-[640px]"
-        />
-      </Link>
-      <div className="product-card flex flex-col gap-7 p-6 !text-left md:col-span-5 md:p-10">
-        <div className="num flex justify-between gap-4 text-xs text-muted-foreground">
-          <span>
-            {p.category} / {GENDER[p.gender ?? ""] ?? "Todos"}
-          </span>
-          <span className="uppercase">Ref. {p.slug}</span>
-        </div>
-        <div>
-          <p className="spec">Coleção outono 2026</p>
-          <h1 className="mt-3 text-[clamp(2.25rem,3.6vw,3rem)] leading-[1.06]">{p.title}</h1>
-          {p.description && (
-            <p className="mt-4 max-w-[44ch] leading-relaxed text-muted-foreground">
-              {p.description}
-            </p>
-          )}
-        </div>
-        <dl className="grid grid-cols-[120px_minmax(0,1fr)] border-t text-sm">
-          {rows.map(([k, v]) => (
-            <div key={k} className="contents">
-              <dt className="border-b py-3 text-muted-foreground">{k}</dt>
-              <dd className="border-b py-3">{v}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-4">
-          <span className="num text-2xl">{euro(Number(p.price))}</span>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild size="lg" variant="outline">
-              <Link to="/loja">Ver a loja</Link>
-            </Button>
-            <Button asChild size="lg">
-              <Link to="/produto/$slug" params={{ slug: p.slug }}>
-                Ver artigo
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Section({ title, items, cat }: { title: string; items: Product[]; cat: string }) {
+function Section({
+  title,
+  items,
+  link,
+}: {
+  title: string;
+  items: Product[];
+  link: { categoria?: string };
+}) {
   if (items.length === 0) return null;
   return (
     <section className="mx-auto max-w-[1440px] px-4 pt-20 md:px-10">
@@ -118,14 +132,14 @@ function Section({ title, items, cat }: { title: string; items: Product[]; cat: 
         <h2 className="text-2xl md:text-3xl">{title}</h2>
         <Link
           to="/loja"
-          search={{ categoria: cat }}
+          search={link}
           className="num text-xs text-muted-foreground hover:text-foreground"
         >
-          {items.length} artigos — ver todos
+          Ver todos
         </Link>
       </div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-6">
-        {items.slice(0, 4).map((p) => (
+        {items.slice(0, 8).map((p) => (
           <ProductCard key={p.id} p={p} />
         ))}
       </div>
