@@ -62,7 +62,7 @@ export function CookieBanner() {
               <label className="flex items-start gap-3">
                 <input
                   type="checkbox"
-                  className="mt-1 accent-[var(--cherry-velvet)]"
+                  className="mt-1 accent-[var(--brand-accent)]"
                   checked={analytics}
                   onChange={(e) => setAnalytics(e.target.checked)}
                 />

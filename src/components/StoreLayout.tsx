@@ -36,26 +36,26 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
       >
         Saltar para o conteúdo
       </a>
-      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 md:px-6">
-          <nav aria-label="Loja" className="hidden gap-6 text-sm md:flex">
-            <Link
-              to="/loja"
-              className="hover:text-primary"
-              activeOptions={{ includeSearch: false }}
-            >
-              Loja
-            </Link>
+      <header className="sticky top-0 z-30 border-b bg-card">
+        <div className="mx-auto grid h-16 max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 md:px-10">
+          <nav aria-label="Loja" className="hidden items-center gap-7 md:flex">
             {SHOP.map((s) => (
               <Link
                 key={s.label}
                 to="/loja"
                 search={{ categoria: s.categoria }}
-                className="text-muted-foreground hover:text-primary"
+                className="nav-link hover:text-[var(--brand-accent)]"
               >
                 {s.label}
               </Link>
             ))}
+            <Link
+              to="/loja"
+              className="nav-link text-[var(--brand-accent)] hover:underline"
+              activeOptions={{ includeSearch: false }}
+            >
+              Ver tudo
+            </Link>
           </nav>
           <button
             className="-ml-2 p-2 md:hidden"
@@ -67,27 +67,33 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
           </button>
           <Link
             to="/"
-            className="font-display text-xl tracking-[0.32em] uppercase md:text-2xl"
+            className="logo text-base md:text-lg"
             aria-label="Pallessiani, página inicial"
           >
             Pallessiani
           </Link>
-          <div className="flex items-center justify-end gap-4 text-sm">
+          <div className="flex items-center justify-end gap-6">
             <Link
               to={signedIn ? "/conta" : "/auth"}
-              className="flex items-center gap-2 hover:text-primary"
+              className="nav-link hidden hover:text-[var(--brand-accent)] md:inline"
+            >
+              {signedIn ? "Conta" : "Entrar"}
+            </Link>
+            <Link
+              to={signedIn ? "/conta" : "/auth"}
+              className="p-1 md:hidden"
               aria-label={signedIn ? "A minha conta" : "Entrar"}
             >
               <User className="h-5 w-5" />
-              <span className="hidden md:inline">{signedIn ? "Conta" : "Entrar"}</span>
             </Link>
-            <Link to="/carrinho" className="relative p-1" aria-label={`Carrinho, ${count} artigos`}>
-              <ShoppingBag className="h-5 w-5" />
-              {count > 0 && (
-                <span className="num absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
-                  {count}
-                </span>
-              )}
+            <Link
+              to="/carrinho"
+              className="nav-link flex items-center gap-1.5 hover:text-[var(--brand-accent)]"
+              aria-label={`Carrinho, ${count} artigos`}
+            >
+              <ShoppingBag className="h-5 w-5 md:hidden" />
+              <span className="hidden md:inline">Carrinho</span>
+              <span className="num">({count})</span>
             </Link>
           </div>
         </div>
@@ -137,14 +143,14 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
         {children}
       </main>
 
-      <footer className="border-t bg-[var(--bordeaux-noir)] text-[var(--vanilla-silk)]">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4">
+      <footer className="site-footer mt-24 border-t">
+        <div className="mx-auto grid max-w-[1440px] gap-10 px-6 py-14 sm:grid-cols-2 md:px-10 lg:grid-cols-4">
           <div>
-            <p className="font-display text-2xl tracking-[0.3em] uppercase">Pallessiani</p>
-            <p className="mt-3 max-w-xs text-sm text-[var(--alpine-oat)]">{SITE.tagline}</p>
+            <p className="logo text-lg">Pallessiani</p>
+            <p className="muted mt-3 max-w-xs text-sm">{SITE.tagline}</p>
           </div>
-          <nav aria-label="Loja" className="space-y-2 text-sm">
-            <p className="font-display text-lg">Loja</p>
+          <nav aria-label="Loja no rodapé" className="space-y-2 text-sm">
+            <p className="nav-link muted">Loja</p>
             <Link to="/loja" className="block hover:underline">
               Todos os artigos
             </Link>
@@ -160,7 +166,7 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
             ))}
           </nav>
           <nav aria-label="Informação legal" className="space-y-2 text-sm">
-            <p className="font-display text-lg">Informação</p>
+            <p className="nav-link muted">Informação</p>
             <Link to="/termos" className="block hover:underline">
               Termos e condições
             </Link>
@@ -180,7 +186,7 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
             </a>
           </nav>
           <address className="space-y-2 text-sm not-italic">
-            <p className="font-display text-lg">Contacto</p>
+            <p className="nav-link muted">Contacto</p>
             {!isPending(c.email) && (
               <a href={`mailto:${c.email}`} className="block hover:underline">
                 {c.email}
@@ -188,7 +194,7 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
             )}
             {!isPending(c.phone) && <p>{c.phone}</p>}
             {!isPending(c.address) && (
-              <p className="text-[var(--alpine-oat)]">
+              <p className="muted">
                 {c.address}
                 <br />
                 {c.postalCode} {c.city}
@@ -199,8 +205,8 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
             </Link>
           </address>
         </div>
-        <div className="border-t border-white/10">
-          <p className="mx-auto max-w-7xl px-6 py-5 text-xs text-[var(--warm-greige)]">
+        <div className="rule border-t">
+          <p className="muted num mx-auto max-w-[1440px] px-6 py-5 text-xs md:px-10">
             © {new Date().getFullYear()} {isPending(c.legalName) ? SITE.name : c.legalName}
             {!isPending(c.nif) && ` · NIPC ${c.nif}`}
           </p>

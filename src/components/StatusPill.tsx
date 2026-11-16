@@ -5,7 +5,7 @@ const TONES: Record<string, string> = {
   pass: "bg-[#E3EDE5] text-[#2F5A3D]",
   fail: "bg-[#F4E1DF] text-[#8E2626]",
   warn: "bg-[#F3E7D2] text-[#7A4F0E]",
-  info: "bg-[#F4EDE4] text-[var(--cherry-velvet)]",
+  info: "bg-muted text-[var(--brand-accent)]",
   none: "bg-[#ECE6E1] text-[#5E524C]",
 };
 

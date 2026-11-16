@@ -46,11 +46,11 @@ function Shop() {
   );
   return (
     <StoreLayout>
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <h1 className="text-4xl md:text-5xl">
+      <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10">
+        <h1 className="text-3xl md:text-4xl">
           {categoria && categoria !== "Todos" ? categoria : "A loja"}
         </h1>
-        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-b pb-4 text-sm">
+        <div className="nav-link mt-6 flex flex-wrap gap-x-6 gap-y-3 border-b border-foreground pb-3">
           <div className="-mx-1 flex gap-4 overflow-x-auto px-1">
             {CATS.map((c) => (
               <Link
@@ -81,7 +81,8 @@ function Shop() {
             ))}
           </div>
         </div>
-        <div className="mt-8 grid grid-cols-2 gap-6 md:grid-cols-4">
+        <p className="num mt-4 text-xs text-muted-foreground">{list.length} artigos</p>
+        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-6">
           {list.map((p) => (
             <ProductCard key={p.id} p={p} />
           ))}

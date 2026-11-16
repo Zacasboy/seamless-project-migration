@@ -12,6 +12,7 @@ import { euro, useCart } from "@/lib/cart";
 import { seo } from "@/lib/site";
 import { productsQuery } from "./index";
 import { trackView } from "@/lib/track";
+import { specLine } from "@/lib/spec";
 
 const productQuery = (slug: string) =>
   queryOptions({ queryKey: ["product", slug], queryFn: () => getProduct({ data: { slug } }) });
@@ -102,7 +103,7 @@ function ProductPage() {
     <StoreLayout className="pb-sticky md:pb-0">
       <nav
         aria-label="Caminho"
-        className="mx-auto max-w-7xl px-6 pt-6 text-xs text-muted-foreground"
+        className="num mx-auto max-w-[1440px] px-4 pt-6 text-xs text-muted-foreground md:px-10"
       >
         <Link to="/loja" className="hover:underline">
           Loja
@@ -112,18 +113,20 @@ function ProductPage() {
           {p.category}
         </Link>
       </nav>
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-8 md:grid-cols-2 md:py-12">
+      <div className="mx-auto grid max-w-[1440px] gap-6 px-4 py-6 md:grid-cols-12 md:px-10 md:py-8">
         <ProductImage
           product={p}
           loading="eager"
-          sizes="(min-width: 768px) 50vw, 100vw"
-          className="aspect-[3/4] w-full object-cover"
+          sizes="(min-width: 768px) 58vw, 100vw"
+          className="aspect-[4/5] w-full object-cover md:col-span-7"
         />
-        <div className="md:py-10">
-          <p className="eyebrow">
-            {p.category} · {p.gender}
+        <div className="product-card h-fit p-6 !text-left md:col-span-5 md:p-10">
+          <p className="num flex justify-between gap-4 text-xs text-muted-foreground">
+            <span>{p.category}</span>
+            <span className="uppercase">Ref. {p.slug}</span>
           </p>
-          <h1 className="mt-3 text-4xl md:text-5xl">{p.title}</h1>
+          <h1 className="mt-4 text-4xl md:text-5xl">{p.title}</h1>
+          <p className="spec mt-2">{specLine(p)}</p>
           <p className="num mt-4 text-2xl">{euro(Number(p.price))}</p>
           {STOCK_LABEL[p.stock_status] && (
             <p className={`mt-2 text-sm ${soldOut ? "text-destructive" : "text-success"}`}>
@@ -131,6 +134,19 @@ function ProductPage() {
             </p>
           )}
           <p className="mt-6 leading-relaxed text-muted-foreground">{p.description}</p>
+          <dl className="mt-6 grid grid-cols-[120px_minmax(0,1fr)] border-t text-sm">
+            {[
+              ["Categoria", p.category],
+              ["Para", p.gender === "homem" ? "Homem" : p.gender === "mulher" ? "Mulher" : "Todos"],
+              ["Entrega", "Portugal e União Europeia"],
+              ["Devolução", "14 dias após a receção"],
+            ].map(([k, v]) => (
+              <div key={k} className="contents">
+                <dt className="border-b py-3 text-muted-foreground">{k}</dt>
+                <dd className="border-b py-3">{v}</dd>
+              </div>
+            ))}
+          </dl>
 
           {sizes.length > 0 && (
             <fieldset className="mt-8" aria-describedby={sizeError ? "tamanho-erro" : undefined}>
@@ -179,7 +195,7 @@ function ProductPage() {
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm">{p.title}</p>
-            <p className="num font-display text-xl">{euro(Number(p.price))}</p>
+            <p className="num text-lg">{euro(Number(p.price))}</p>
           </div>
           <Button size="lg" onClick={add} disabled={soldOut}>
             {soldOut ? "Esgotado" : "Adicionar"}
@@ -188,9 +204,11 @@ function ProductPage() {
       </div>
 
       {related.length > 0 && (
-        <section className="mx-auto max-w-7xl px-6 pb-16">
-          <h2 className="mb-6 text-3xl">Completa o look</h2>
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <section className="mx-auto max-w-[1440px] px-4 pb-16 pt-12 md:px-10">
+          <h2 className="mb-6 border-b border-foreground pb-3 text-2xl md:text-3xl">
+            Completa o look
+          </h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-6">
             {related.map((r) => (
               <ProductCard key={r.id} p={r} />
             ))}

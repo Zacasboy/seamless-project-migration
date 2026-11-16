@@ -1,4 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { STORE_THEMES, normalizeTheme, type StoreThemeId } from "@/lib/theme";
 import { AdminHeader, Panel } from "@/components/admin/AdminHeader";
 import { StatusPill } from "@/components/StatusPill";
 import { useMigrationStatus } from "@/lib/admin-data";
@@ -63,7 +69,8 @@ function Page() {
   ];
   return (
     <>
-      <AdminHeader title="Definições" intro="Estado da configuração da loja." />
+      <AdminHeader title="Definições" intro="Aspeto da loja e estado da configuração." />
+      <ThemePanel />
       <Panel className="p-0">
         <ul className="divide-y">
           {rows.map((r) => (
@@ -86,5 +93,131 @@ function Page() {
         </ul>
       </Panel>
     </>
+  );
+}
+
+function useSavedTheme() {
+  return useQuery({
+    queryKey: ["admin", "store-theme"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("store_settings")
+        .select("value, updated_at")
+        .eq("key", "theme")
+        .maybeSingle();
+      if (error) return { ready: false as const, theme: normalizeTheme(null), updatedAt: null };
+      return {
+        ready: true as const,
+        theme: normalizeTheme(data?.value),
+        updatedAt: data?.updated_at ?? null,
+      };
+    },
+  });
+}
+
+function ThemePanel() {
+  const qc = useQueryClient();
+  const saved = useSavedTheme();
+  const [choice, setChoice] = useState<StoreThemeId | null>(null);
+  const current = choice ?? saved.data?.theme ?? "ficha";
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase.from("store_settings").upsert({
+        key: "theme",
+        value: current,
+        updated_by: u.user?.id ?? null,
+        updated_at: new Date().toISOString(),
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success("Tema da loja atualizado");
+      setChoice(null);
+      void qc.invalidateQueries({ queryKey: ["admin", "store-theme"] });
+      void qc.invalidateQueries({ queryKey: ["store-theme"] });
+    },
+    onError: (e: Error) => toast.error(`Não foi possível guardar o tema: ${e.message}`),
+  });
+
+  const dirty = saved.data?.ready && current !== saved.data.theme;
+
+  return (
+    <Panel>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="text-xl">Tema da loja</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Muda as cores e a tipografia da loja para todos os visitantes. O painel mantém sempre o
+            mesmo aspeto.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm underline underline-offset-4"
+          >
+            Abrir a loja
+          </a>
+          <Button onClick={() => save.mutate()} disabled={!dirty || save.isPending}>
+            {save.isPending ? "A guardar…" : "Aplicar tema"}
+          </Button>
+        </div>
+      </div>
+      {saved.data && !saved.data.ready && (
+        <p
+          role="status"
+          className="mt-4 border border-[#E9D3AE] bg-[#FBF1E1] px-4 py-3 text-sm text-[#5A3A08]"
+        >
+          Para guardar o tema falta aplicar a atualização da base de dados
+          supabase/migrations/20261116031500_store_settings.sql. Até lá a loja usa a Ficha técnica.
+        </p>
+      )}
+      <div role="radiogroup" aria-label="Tema da loja" className="mt-5 grid gap-4 md:grid-cols-3">
+        {STORE_THEMES.map((t) => {
+          const on = current === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              disabled={saved.data ? !saved.data.ready : true}
+              onClick={() => setChoice(t.id)}
+              className={`flex flex-col gap-3 border bg-card p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${on ? "border-foreground shadow-[inset_0_0_0_1px_var(--foreground)]" : "hover:border-foreground/50"}`}
+            >
+              <div
+                data-theme={t.id}
+                className="store-theme flex h-28 flex-col justify-between border p-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="logo text-[11px]">Pallessiani</span>
+                  <span className="nav-link text-[10px]">Carrinho (0)</span>
+                </div>
+                <div>
+                  <p className="font-display text-lg leading-tight">Mala Castanha Clássica</p>
+                  <p className="spec text-[11px]">Pele castanha, fecho dourado</p>
+                </div>
+              </div>
+              <div className="flex gap-1.5" aria-hidden>
+                {t.swatches.map((c) => (
+                  <span key={c} className="h-4 w-8 border" style={{ background: c }} />
+                ))}
+              </div>
+              <div>
+                <p className="flex items-center justify-between font-medium">
+                  {t.name}
+                  {saved.data?.theme === t.id && <StatusPill tone="pass">Em uso</StatusPill>}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </Panel>
   );
 }

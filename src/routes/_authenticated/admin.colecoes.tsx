@@ -132,7 +132,7 @@ function ItemsEditor() {
             >
               <input
                 type="checkbox"
-                className="accent-[var(--cherry-velvet)]"
+                className="accent-[var(--brand-accent)]"
                 checked={selected.has(p.id)}
                 disabled={busy === p.id || items.isLoading}
                 onChange={(e) => toggle(p.id, e.target.checked)}

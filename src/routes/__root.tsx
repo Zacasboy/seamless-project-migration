@@ -10,6 +10,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import appCss from "../styles.css?url";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +19,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { CookieBanner } from "@/components/CookieBanner";
 import { trackAnalyticsPage } from "@/lib/consent";
 import { SITE } from "@/lib/site";
+import { DEFAULT_THEME, storeThemeQuery } from "@/lib/theme";
 
 function NotFoundComponent() {
   return (
@@ -100,7 +102,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: `${SITE.name} — Moda intemporal` },
       { name: "description", content: SITE.tagline },
-      { name: "theme-color", content: "#FBF8F4" },
+      { name: "theme-color", content: "#F2F2F0" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: SITE.name },
       { name: "twitter:card", content: "summary_large_image" },
@@ -111,7 +113,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Karla:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap",
       },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
@@ -120,12 +122,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/site.webmanifest" },
     ],
   }),
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(storeThemeQuery).catch(() => DEFAULT_THEME),
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
   pendingComponent: PendingComponent,
 });
+
+// Aplica o tema escolhido no painel a todas as páginas da loja.
+function StoreTheme({ children }: { children: ReactNode }) {
+  const { data } = useQuery(storeThemeQuery);
+  return (
+    <div data-theme={data ?? DEFAULT_THEME} className="store-theme min-h-screen">
+      {children}
+    </div>
+  );
+}
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
@@ -162,9 +176,15 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
-        <Outlet />
+        {isAdmin ? (
+          <Outlet />
+        ) : (
+          <StoreTheme>
+            <Outlet />
+            <CookieBanner />
+          </StoreTheme>
+        )}
         <Toaster position="bottom-center" />
-        {!isAdmin && <CookieBanner />}
       </CartProvider>
     </QueryClientProvider>
   );

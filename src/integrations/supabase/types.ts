@@ -193,6 +193,13 @@ export type OpportunityRow = {
   created_at: string;
 };
 
+export type StoreSettingRow = {
+  key: string;
+  value: Json;
+  updated_at: string;
+  updated_by: string | null;
+};
+
 export type Database = {
   __InternalSupabase: { PostgrestVersion: "14.18" };
   public: {
@@ -221,6 +228,7 @@ export type Database = {
       profiles: Table<ProfileRow, "id">;
       user_roles: Table<UserRoleRow, "user_id" | "role">;
       opportunity_findings: Table<OpportunityRow, "title" | "source">;
+      store_settings: Table<StoreSettingRow, "key" | "value">;
     };
     Views: { [_ in never]: never };
     Functions: {

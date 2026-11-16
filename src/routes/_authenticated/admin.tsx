@@ -98,7 +98,7 @@ function Shell({ email, onSignOut }: { email: string; onSignOut: () => void }) {
         <div className="px-4 md:px-3">
           <Link
             to="/admin"
-            className="font-display text-xl tracking-[0.28em] text-[var(--cherry-velvet)] uppercase"
+            className="font-display text-xl tracking-[0.28em] text-[var(--brand-accent)] uppercase"
           >
             Pallessiani
           </Link>
@@ -123,14 +123,14 @@ function Shell({ email, onSignOut }: { email: string; onSignOut: () => void }) {
                     className="relative flex items-center justify-between gap-2 whitespace-nowrap rounded px-3 py-2 text-sm text-[#4A3A35] hover:bg-sidebar-accent hover:text-sidebar-foreground"
                     activeProps={{
                       className:
-                        "!bg-sidebar-primary !text-sidebar-primary-foreground font-semibold shadow-[inset_2px_0_0_var(--cherry-velvet),0_0_0_1px_var(--hairline)]",
+                        "!bg-sidebar-primary !text-sidebar-primary-foreground font-semibold shadow-[inset_2px_0_0_var(--brand-accent),0_0_0_1px_var(--border)]",
                       "aria-current": "page",
                     }}
                   >
                     {n.label}
                     {count > 0 && (
                       <span
-                        className="num min-w-5 rounded-full bg-[var(--cherry-velvet)] px-1.5 text-center text-[11px] font-semibold leading-5 text-white"
+                        className="num min-w-5 rounded-full bg-[var(--brand-accent)] px-1.5 text-center text-[11px] font-semibold leading-5 text-white"
                         aria-label={`${count} a rever`}
                       >
                         {count}

@@ -61,7 +61,7 @@ export function LineChart({
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} className="block h-auto w-full">
       {ticks.map((t) => (
         <g key={t}>
-          <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--alpine-oat)" strokeWidth="1" />
+          <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--border)" strokeWidth="1" />
           <text
             x={L - 8}
             y={y(t) + 4}
@@ -87,14 +87,14 @@ export function LineChart({
           </text>
         ) : null,
       )}
-      <polygon points={area} fill="var(--cherry-velvet)" opacity="0.08" />
-      <polyline points={line} fill="none" stroke="var(--cherry-velvet)" strokeWidth="2" />
+      <polygon points={area} fill="var(--brand-accent)" opacity="0.08" />
+      <polyline points={line} fill="none" stroke="var(--brand-accent)" strokeWidth="2" />
       {last && (
         <circle
           cx={x(points.length - 1)}
           cy={y(last.y)}
           r="4"
-          fill="var(--cherry-velvet)"
+          fill="var(--brand-accent)"
           stroke="var(--card)"
           strokeWidth="2"
         />

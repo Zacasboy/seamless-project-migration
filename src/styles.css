@@ -5,8 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
-  --font-sans: "Karla", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--theme-display);
+  --font-sans: var(--theme-sans);
+  --font-mono: var(--theme-mono);
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
@@ -50,63 +51,152 @@
 }
 
 /*
- * Pallessiani — Soft Luxury (v2)
- * Fundo marfim claro, texto quase preto bordeaux, Cherry Velvet só em ações.
- * Vanilla Silk, Alpine Oat e Warm Greige ficam para superfícies de produto,
- * linhas e decoração — nunca para texto.
+ * Pallessiani — temas da loja
+ * ficha (predefinido): ficha técnica — cinza quente, grafite, IBM Plex.
+ * pedra: boutique suave — pedra clara, pau-rosa, EB Garamond + Hanken Grotesk.
+ * pedra-ficha: cores da pedra com a estrutura e a tipografia técnica.
+ * O painel usa sempre o tema base (:root). A loja recebe data-theme.
  */
-:root {
+:root,
+[data-theme="ficha"] {
   color-scheme: light;
-  --radius: 0.125rem;
+  --radius: 0rem;
 
-  --vanilla-silk: #eee2d4;
-  --alpine-oat: #d7c6b5;
-  --warm-greige: #b09d8f;
-  --cherry-velvet: #471d1f;
-  --bordeaux-noir: #31181c;
-  --ink: #1e1215;
-  --ivory: #fbf8f4;
-  --hairline: #e6dacb;
-
-  --background: var(--ivory);
-  --foreground: var(--ink);
+  --background: #f2f2f0;
+  --foreground: #161616;
   --card: #ffffff;
-  --card-foreground: var(--ink);
+  --card-foreground: #161616;
   --popover: #ffffff;
-  --popover-foreground: var(--ink);
-  --primary: var(--cherry-velvet);
-  --primary-foreground: #fbf8f4;
-  --secondary: #f4ede4;
-  --secondary-foreground: var(--ink);
-  --muted: #f4ede4;
-  --muted-foreground: #6e5f58;
-  --accent: #f4ede4;
-  --accent-foreground: var(--ink);
-  --gold: var(--cherry-velvet);
-  --success: #3f6b4f;
+  --popover-foreground: #161616;
+  --primary: #161616;
+  --primary-foreground: #ffffff;
+  --secondary: #eaeae7;
+  --secondary-foreground: #161616;
+  --muted: #eaeae7;
+  --muted-foreground: #5f6366;
+  --accent: #eaeae7;
+  --accent-foreground: #161616;
+  --brand-accent: #5b1f24;
+  --gold: var(--brand-accent);
+  --success: #2f6b45;
   --warning: #8a5a12;
-  --destructive: #9b2c2c;
+  --destructive: #a12a2a;
   --destructive-foreground: #ffffff;
-  --border: var(--hairline);
-  --input: #d9cbbb;
-  --ring: var(--cherry-velvet);
+  --border: #d9d9d6;
+  --input: #c4c4c0;
+  --ring: #5b1f24;
 
-  --chart-1: var(--cherry-velvet);
-  --chart-2: var(--warm-greige);
-  --chart-3: var(--alpine-oat);
-  --chart-4: #7a4a45;
-  --chart-5: #5e4b44;
+  --plate: #e4e2de;
+  --plate-label: #45474a;
+  --pcard-bg: #ffffff;
+  --pcard-line: #d9d9d6;
+  --pcard-align: left;
+  --footer-bg: #161616;
+  --footer-fg: #ffffff;
+  --footer-muted: #c9c9c6;
+  --footer-line: rgb(255 255 255 / 0.12);
 
-  /* Painel: lateral clara */
-  --sidebar: #f4ede4;
-  --sidebar-foreground: var(--ink);
-  --sidebar-muted: #7d6b62;
+  --theme-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --theme-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --theme-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --display-weight: 500;
+  --display-tracking: -0.015em;
+  --nav-font: var(--theme-sans);
+  --nav-transform: uppercase;
+  --nav-tracking: 0.14em;
+  --nav-size: 0.75rem;
+  --nav-weight: 500;
+  --spec-font: var(--theme-mono);
+  --spec-transform: uppercase;
+  --spec-size: 0.75rem;
+  --spec-color: var(--muted-foreground);
+  --logo-font: var(--theme-sans);
+  --logo-weight: 600;
+
+  --chart-1: #5b1f24;
+  --chart-2: #8c8f91;
+  --chart-3: #c4c4c0;
+  --chart-4: #45474a;
+  --chart-5: #161616;
+
+  --sidebar: #fafaf8;
+  --sidebar-foreground: #161616;
+  --sidebar-muted: #5f6366;
   --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: var(--ink);
-  --sidebar-accent: #ede3d7;
-  --sidebar-accent-foreground: var(--ink);
-  --sidebar-border: var(--hairline);
-  --sidebar-ring: var(--cherry-velvet);
+  --sidebar-primary-foreground: #161616;
+  --sidebar-accent: #eeeeeb;
+  --sidebar-accent-foreground: #161616;
+  --sidebar-border: #d9d9d6;
+  --sidebar-ring: #5b1f24;
+}
+
+[data-theme="pedra"],
+[data-theme="pedra-ficha"] {
+  --background: #f6f4f0;
+  --foreground: #23201c;
+  --card: #ffffff;
+  --card-foreground: #23201c;
+  --popover: #ffffff;
+  --popover-foreground: #23201c;
+  --primary: #23201c;
+  --primary-foreground: #f6f4f0;
+  --secondary: #ece8e2;
+  --secondary-foreground: #23201c;
+  --muted: #ece8e2;
+  --muted-foreground: #5c554d;
+  --accent: #ece8e2;
+  --accent-foreground: #23201c;
+  --brand-accent: #8a4b3e;
+  --gold: #8a4b3e;
+  --border: #e2dcd3;
+  --input: #d0c7bb;
+  --ring: #8a4b3e;
+  --plate: #ece8e2;
+  --plate-label: #5c554d;
+}
+
+[data-theme="pedra"] {
+  --pcard-bg: transparent;
+  --pcard-line: transparent;
+  --pcard-align: center;
+  --footer-bg: #f6f4f0;
+  --footer-fg: #23201c;
+  --footer-muted: #5c554d;
+  --footer-line: #e2dcd3;
+  --theme-display: "EB Garamond", ui-serif, Georgia, serif;
+  --theme-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --theme-mono: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --display-weight: 400;
+  --display-tracking: -0.005em;
+  --nav-font: var(--theme-display);
+  --nav-transform: none;
+  --nav-tracking: 0;
+  --nav-size: 1.1rem;
+  --nav-weight: 400;
+  --spec-font: var(--theme-display);
+  --spec-transform: none;
+  --spec-size: 1.05rem;
+  --spec-color: var(--brand-accent);
+  --logo-font: var(--theme-display);
+  --logo-weight: 400;
+}
+
+[data-theme="pedra-ficha"] {
+  --pcard-bg: #ffffff;
+  --pcard-line: #e2dcd3;
+  --pcard-align: left;
+  --footer-bg: #23201c;
+  --footer-fg: #f6f4f0;
+  --footer-muted: #cfc6ba;
+  --footer-line: rgb(246 244 240 / 0.14);
+  --theme-display: "EB Garamond", ui-serif, Georgia, serif;
+  --theme-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --theme-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --display-weight: 400;
+  --display-tracking: -0.005em;
+  --spec-color: var(--brand-accent);
+  --logo-font: var(--theme-display);
+  --logo-weight: 400;
 }
 
 @layer base {
@@ -120,21 +210,21 @@
     min-height: 100vh;
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: var(--font-sans);
+    font-family: var(--theme-sans);
     -webkit-font-smoothing: antialiased;
   }
   h1,
   h2,
   h3,
   .font-display {
-    font-family: var(--font-display);
-    font-weight: 500;
-    letter-spacing: -0.01em;
+    font-family: var(--theme-display);
+    font-weight: var(--display-weight);
+    letter-spacing: var(--display-tracking);
     text-wrap: balance;
   }
   ::selection {
-    background: var(--vanilla-silk);
-    color: var(--ink);
+    background: var(--muted);
+    color: var(--foreground);
   }
   :focus-visible {
     outline: 2px solid var(--ring);
@@ -174,6 +264,7 @@
 }
 
 @utility num {
+  font-family: var(--theme-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -182,39 +273,50 @@
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 }
 
-/* Placeholder editorial de produto: etiqueta com monograma até haver fotografia. */
+/* Peças da loja que mudam com o tema */
 @layer components {
-  .product-tag {
-    container-type: inline-size;
-    background-image: repeating-linear-gradient(
-      135deg,
-      rgb(49 24 28 / 0.025) 0 1px,
-      transparent 1px 7px
-    );
+  .store-theme {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--theme-sans);
   }
-  .product-tag__frame {
-    position: absolute;
-    inset: 6cqw;
-    border: 1px solid rgb(49 24 28 / 0.16);
+  .nav-link {
+    font-family: var(--nav-font);
+    text-transform: var(--nav-transform);
+    letter-spacing: var(--nav-tracking);
+    font-size: var(--nav-size);
+    font-weight: var(--nav-weight);
   }
-  .product-tag__hole {
-    position: absolute;
-    top: 10cqw;
-    left: 50%;
-    width: 4.5cqw;
-    height: 4.5cqw;
-    min-width: 8px;
-    min-height: 8px;
-    transform: translateX(-50%);
-    border-radius: 9999px;
-    background: var(--ivory);
-    box-shadow: inset 0 1px 2px rgb(49 24 28 / 0.25);
+  .logo {
+    font-family: var(--logo-font);
+    font-weight: var(--logo-weight);
+    letter-spacing: 0.38em;
+    text-transform: uppercase;
   }
-  .product-tag__mono {
-    font-size: 64cqw;
-    font-weight: 400;
-    line-height: 1;
-    color: rgb(71 29 31 / 0.2);
-    padding-bottom: 6cqw;
+  .spec {
+    font-family: var(--spec-font);
+    text-transform: var(--spec-transform);
+    font-size: var(--spec-size);
+    color: var(--spec-color);
+    letter-spacing: 0.02em;
+  }
+  .plate {
+    background: var(--plate);
+    color: var(--plate-label);
+  }
+  .product-card {
+    background: var(--pcard-bg);
+    border: 1px solid var(--pcard-line);
+    text-align: var(--pcard-align);
+  }
+  .site-footer {
+    background: var(--footer-bg);
+    color: var(--footer-fg);
+  }
+  .site-footer .muted {
+    color: var(--footer-muted);
+  }
+  .site-footer .rule {
+    border-color: var(--footer-line);
   }
 }

@@ -19,26 +19,8 @@ type Props = {
   compact?: boolean;
 };
 
-// Tom do placeholder por categoria, sempre dentro da paleta Soft Luxury.
-const TONE: Record<string, string> = {
-  Malas: "#E8DACB",
-  Calçado: "#EEE2D4",
-  Conjuntos: "#DDCDBD",
-};
-
-// Inicial para o monograma: a primeira palavra costuma ser o tipo de peça
-// ("Mala", "Conjunto"), por isso usamos a segunda quando existe.
-export function monogram(title: string) {
-  const words = title
-    .trim()
-    .split(/\s+/)
-    .filter((w) => w.length > 2);
-  const w = words[1] ?? words[0] ?? title.trim();
-  return (w[0] ?? "P").toUpperCase();
-}
-
-// Imagem do produto com texto alternativo. Sem fotografia, mostra uma etiqueta
-// editorial com o monograma da peça, até haver fotos reais.
+// Imagem do produto com texto alternativo. Sem fotografia, mostra uma superfície
+// lisa no tom do tema com a indicação "Fotografia em breve".
 export function ProductImage({
   product,
   className,
@@ -65,34 +47,17 @@ export function ProductImage({
       />
     );
   }
-  const tone = TONE[product.category ?? ""] ?? "#E8DACB";
   return (
     <div
       {...(text
         ? { role: "img", "aria-label": `${text} (fotografia em breve)` }
         : { "aria-hidden": true })}
-      className={cn("product-tag relative isolate overflow-hidden text-[var(--ink)]", className)}
-      style={{ backgroundColor: tone }}
+      className={cn("plate relative flex items-end overflow-hidden", className)}
     >
-      {!compact && <span aria-hidden className="product-tag__frame" />}
-      {!compact && <span aria-hidden className="product-tag__hole" />}
-      <span
-        aria-hidden
-        className="product-tag__mono absolute inset-0 flex items-center justify-center font-display italic"
-      >
-        {monogram(product.title)}
-      </span>
       {!compact && (
-        <span
-          aria-hidden
-          className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 px-[9%] pb-[8%] text-left"
-        >
-          {caption && (
-            <span className="font-display text-[clamp(1.05rem,1.6vw,1.45rem)] leading-tight">
-              {product.title}
-            </span>
-          )}
-          <span className="text-[11px] tracking-wide text-[#6E5F58]">Fotografia em breve</span>
+        <span aria-hidden className="flex flex-col gap-1 p-4 text-left">
+          {caption && <span className="text-sm text-foreground">{product.title}</span>}
+          <span className="num text-[11px] uppercase tracking-wide">Fotografia em breve</span>
         </span>
       )}
     </div>

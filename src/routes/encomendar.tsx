@@ -185,7 +185,7 @@ function Checkout() {
               <input
                 id="c-acceptTerms"
                 type="checkbox"
-                className="mt-1 accent-[var(--cherry-velvet)]"
+                className="mt-1 accent-[var(--brand-accent)]"
                 checked={accept}
                 onChange={(e) => setAccept(e.target.checked)}
                 aria-invalid={!!errors["acceptTerms"]}
