@@ -31,6 +31,7 @@ import { Route as AuthenticatedAdminColecoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminDefinicoesRouteImport } from './routes/_authenticated/admin.definicoes'
 import { Route as AuthenticatedAdminEncomendasRouteImport } from './routes/_authenticated/admin.encomendas'
 import { Route as AuthenticatedAdminFornecedoresRouteImport } from './routes/_authenticated/admin.fornecedores'
+import { Route as AuthenticatedAdminImportarRouteImport } from './routes/_authenticated/admin.importar'
 import { Route as AuthenticatedAdminProdutosRouteImport } from './routes/_authenticated/admin.produtos'
 import { Route as AuthenticatedAdminRadarRouteImport } from './routes/_authenticated/admin.radar'
 import { Route as AuthenticatedAdminTrafegoRouteImport } from './routes/_authenticated/admin.trafego'
@@ -151,6 +152,12 @@ const AuthenticatedAdminFornecedoresRoute =
     path: '/fornecedores',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminImportarRoute =
+  AuthenticatedAdminImportarRouteImport.update({
+    id: '/importar',
+    path: '/importar',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminProdutosRoute =
   AuthenticatedAdminProdutosRouteImport.update({
     id: '/produtos',
@@ -196,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
   '/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
+  '/admin/importar': typeof AuthenticatedAdminImportarRoute
   '/admin/produtos': typeof AuthenticatedAdminProdutosRoute
   '/admin/radar': typeof AuthenticatedAdminRadarRoute
   '/admin/trafego': typeof AuthenticatedAdminTrafegoRoute
@@ -222,6 +230,7 @@ export interface FileRoutesByTo {
   '/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
   '/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
+  '/admin/importar': typeof AuthenticatedAdminImportarRoute
   '/admin/produtos': typeof AuthenticatedAdminProdutosRoute
   '/admin/radar': typeof AuthenticatedAdminRadarRoute
   '/admin/trafego': typeof AuthenticatedAdminTrafegoRoute
@@ -251,6 +260,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
   '/_authenticated/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/_authenticated/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
+  '/_authenticated/admin/importar': typeof AuthenticatedAdminImportarRoute
   '/_authenticated/admin/produtos': typeof AuthenticatedAdminProdutosRoute
   '/_authenticated/admin/radar': typeof AuthenticatedAdminRadarRoute
   '/_authenticated/admin/trafego': typeof AuthenticatedAdminTrafegoRoute
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/admin/definicoes'
     | '/admin/encomendas'
     | '/admin/fornecedores'
+    | '/admin/importar'
     | '/admin/produtos'
     | '/admin/radar'
     | '/admin/trafego'
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/admin/definicoes'
     | '/admin/encomendas'
     | '/admin/fornecedores'
+    | '/admin/importar'
     | '/admin/produtos'
     | '/admin/radar'
     | '/admin/trafego'
@@ -334,6 +346,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/definicoes'
     | '/_authenticated/admin/encomendas'
     | '/_authenticated/admin/fornecedores'
+    | '/_authenticated/admin/importar'
     | '/_authenticated/admin/produtos'
     | '/_authenticated/admin/radar'
     | '/_authenticated/admin/trafego'
@@ -514,6 +527,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFornecedoresRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/importar': {
+      id: '/_authenticated/admin/importar'
+      path: '/importar'
+      fullPath: '/admin/importar'
+      preLoaderRoute: typeof AuthenticatedAdminImportarRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/produtos': {
       id: '/_authenticated/admin/produtos'
       path: '/produtos'
@@ -552,6 +572,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDefinicoesRoute: typeof AuthenticatedAdminDefinicoesRoute
   AuthenticatedAdminEncomendasRoute: typeof AuthenticatedAdminEncomendasRoute
   AuthenticatedAdminFornecedoresRoute: typeof AuthenticatedAdminFornecedoresRoute
+  AuthenticatedAdminImportarRoute: typeof AuthenticatedAdminImportarRoute
   AuthenticatedAdminProdutosRoute: typeof AuthenticatedAdminProdutosRoute
   AuthenticatedAdminRadarRoute: typeof AuthenticatedAdminRadarRoute
   AuthenticatedAdminTrafegoRoute: typeof AuthenticatedAdminTrafegoRoute
@@ -566,6 +587,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDefinicoesRoute: AuthenticatedAdminDefinicoesRoute,
   AuthenticatedAdminEncomendasRoute: AuthenticatedAdminEncomendasRoute,
   AuthenticatedAdminFornecedoresRoute: AuthenticatedAdminFornecedoresRoute,
+  AuthenticatedAdminImportarRoute: AuthenticatedAdminImportarRoute,
   AuthenticatedAdminProdutosRoute: AuthenticatedAdminProdutosRoute,
   AuthenticatedAdminRadarRoute: AuthenticatedAdminRadarRoute,
   AuthenticatedAdminTrafegoRoute: AuthenticatedAdminTrafegoRoute,

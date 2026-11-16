@@ -22,6 +22,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { to: "/admin/encomendas", label: "Encomendas", badge: "orders" },
       { to: "/admin/produtos", label: "Produtos" },
+      { to: "/admin/importar", label: "Importar produtos" },
       { to: "/admin/colecoes", label: "Coleções" },
     ],
   },
