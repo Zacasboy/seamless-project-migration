@@ -67,8 +67,14 @@ function Page() {
       <Panel className="p-0">
         <ul className="divide-y">
           {rows.map((r) => (
-            <li key={r.name} className="grid gap-2 px-5 py-4 sm:grid-cols-[120px_minmax(0,1fr)]">
-              <StatusPill tone={r.ok === undefined ? "none" : r.ok ? "pass" : "fail"}>
+            <li
+              key={r.name}
+              className="grid items-start gap-2 px-5 py-4 sm:grid-cols-[110px_minmax(0,1fr)]"
+            >
+              <StatusPill
+                className="mt-0.5"
+                tone={r.ok === undefined ? "none" : r.ok ? "pass" : "warn"}
+              >
                 {r.ok === undefined ? "Informação" : r.ok ? "Feito" : "Por fazer"}
               </StatusPill>
               <div>

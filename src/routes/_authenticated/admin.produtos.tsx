@@ -36,11 +36,7 @@ function Page() {
           render: (r) => (
             <span className="flex items-center gap-3">
               <span className="h-10 w-8 shrink-0 overflow-hidden">
-                <ProductImage
-                  product={r as any}
-                  alt=""
-                  className="h-10 w-8 object-cover [&>span]:hidden"
-                />
+                <ProductImage product={r as any} alt="" compact className="h-10 w-8 object-cover" />
               </span>
               {r["title"]}
             </span>

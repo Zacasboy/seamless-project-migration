@@ -50,66 +50,72 @@
 }
 
 /*
- * Pallessiani — Soft Luxury
- * Vanilla Silk #EEE2D4 · Alpine Oat #D7C6B5 · Warm Greige #B09D8F
- * Cherry Velvet #471D1F · Bordeaux Noir #31181C
- * Warm Greige só em linhas e decoração (contraste 2,3:1 sobre o fundo).
+ * Pallessiani — Soft Luxury (v2)
+ * Fundo marfim claro, texto quase preto bordeaux, Cherry Velvet só em ações.
+ * Vanilla Silk, Alpine Oat e Warm Greige ficam para superfícies de produto,
+ * linhas e decoração — nunca para texto.
  */
 :root {
   color-scheme: light;
-  --radius: 0.25rem;
+  --radius: 0.125rem;
 
-  --vanilla-silk: #EEE2D4;
-  --alpine-oat: #D7C6B5;
-  --warm-greige: #B09D8F;
-  --cherry-velvet: #471D1F;
-  --bordeaux-noir: #31181C;
-  --paper: #F6F0E8;
-  --ivory: #FBF7F2;
+  --vanilla-silk: #eee2d4;
+  --alpine-oat: #d7c6b5;
+  --warm-greige: #b09d8f;
+  --cherry-velvet: #471d1f;
+  --bordeaux-noir: #31181c;
+  --ink: #1e1215;
+  --ivory: #fbf8f4;
+  --hairline: #e6dacb;
 
-  --background: var(--paper);
-  --foreground: var(--bordeaux-noir);
-  --card: var(--ivory);
-  --card-foreground: var(--bordeaux-noir);
-  --popover: var(--ivory);
-  --popover-foreground: var(--bordeaux-noir);
+  --background: var(--ivory);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
   --primary: var(--cherry-velvet);
-  --primary-foreground: var(--paper);
-  --secondary: var(--vanilla-silk);
-  --secondary-foreground: var(--bordeaux-noir);
-  --muted: var(--vanilla-silk);
-  --muted-foreground: #6B5A52;
-  --accent: var(--vanilla-silk);
-  --accent-foreground: var(--bordeaux-noir);
+  --primary-foreground: #fbf8f4;
+  --secondary: #f4ede4;
+  --secondary-foreground: var(--ink);
+  --muted: #f4ede4;
+  --muted-foreground: #6e5f58;
+  --accent: #f4ede4;
+  --accent-foreground: var(--ink);
   --gold: var(--cherry-velvet);
-  --success: #3F6B4F;
-  --warning: #8A5A12;
-  --destructive: #9B2C2C;
-  --destructive-foreground: #FFFFFF;
-  --border: var(--alpine-oat);
-  --input: var(--alpine-oat);
+  --success: #3f6b4f;
+  --warning: #8a5a12;
+  --destructive: #9b2c2c;
+  --destructive-foreground: #ffffff;
+  --border: var(--hairline);
+  --input: #d9cbbb;
   --ring: var(--cherry-velvet);
 
   --chart-1: var(--cherry-velvet);
   --chart-2: var(--warm-greige);
   --chart-3: var(--alpine-oat);
-  --chart-4: #7A4A45;
-  --chart-5: #5E4B44;
+  --chart-4: #7a4a45;
+  --chart-5: #5e4b44;
 
-  --sidebar: var(--bordeaux-noir);
-  --sidebar-foreground: var(--vanilla-silk);
-  --sidebar-muted: var(--warm-greige);
-  --sidebar-primary: var(--vanilla-silk);
-  --sidebar-primary-foreground: var(--bordeaux-noir);
-  --sidebar-accent: var(--cherry-velvet);
-  --sidebar-accent-foreground: var(--vanilla-silk);
-  --sidebar-border: #4A2A2F;
-  --sidebar-ring: var(--alpine-oat);
+  /* Painel: lateral clara */
+  --sidebar: #f4ede4;
+  --sidebar-foreground: var(--ink);
+  --sidebar-muted: #7d6b62;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: var(--ink);
+  --sidebar-accent: #ede3d7;
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--hairline);
+  --sidebar-ring: var(--cherry-velvet);
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html { background: var(--background); }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    background: var(--background);
+  }
   body {
     min-height: 100vh;
     background-color: var(--color-background);
@@ -117,21 +123,29 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, .font-display {
+  h1,
+  h2,
+  h3,
+  .font-display {
     font-family: var(--font-display);
     font-weight: 500;
     letter-spacing: -0.01em;
     text-wrap: balance;
   }
-  ::selection { background: var(--alpine-oat); color: var(--bordeaux-noir); }
-  :focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+  ::selection {
+    background: var(--vanilla-silk);
+    color: var(--ink);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
 }
 
 @utility eyebrow {
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--color-muted-foreground);
 }
 
@@ -140,12 +154,23 @@
 }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @utility num {
@@ -155,4 +180,41 @@
 /* Espaço para a barra fixa de compra em telemóvel */
 @utility pb-sticky {
   padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Placeholder editorial de produto: etiqueta com monograma até haver fotografia. */
+@layer components {
+  .product-tag {
+    container-type: inline-size;
+    background-image: repeating-linear-gradient(
+      135deg,
+      rgb(49 24 28 / 0.025) 0 1px,
+      transparent 1px 7px
+    );
+  }
+  .product-tag__frame {
+    position: absolute;
+    inset: 6cqw;
+    border: 1px solid rgb(49 24 28 / 0.16);
+  }
+  .product-tag__hole {
+    position: absolute;
+    top: 10cqw;
+    left: 50%;
+    width: 4.5cqw;
+    height: 4.5cqw;
+    min-width: 8px;
+    min-height: 8px;
+    transform: translateX(-50%);
+    border-radius: 9999px;
+    background: var(--ivory);
+    box-shadow: inset 0 1px 2px rgb(49 24 28 / 0.25);
+  }
+  .product-tag__mono {
+    font-size: 64cqw;
+    font-weight: 400;
+    line-height: 1;
+    color: rgb(71 29 31 / 0.2);
+    padding-bottom: 6cqw;
+  }
 }

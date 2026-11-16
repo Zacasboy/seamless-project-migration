@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { productImage } from "@/lib/images";
-import { ProductImage } from "@/components/ProductImage";
+import { ProductImage, monogram } from "@/components/ProductImage";
 
 describe("productImage", () => {
   it("usa image_url quando é um URL válido", () => {
@@ -17,10 +17,17 @@ describe("productImage", () => {
 });
 
 describe("ProductImage", () => {
-  it("mostra o nome do produto quando não há imagem", () => {
-    render(<ProductImage product={{ title: "Mala Siena", image_url: null }} />);
-    expect(screen.getByRole("img", { name: "Mala Siena" }).tagName).toBe("DIV");
+  it("mostra uma etiqueta com monograma quando não há imagem", () => {
+    render(<ProductImage product={{ title: "Mala Siena", image_url: null }} caption />);
+    const el = screen.getByRole("img", { name: "Mala Siena (fotografia em breve)" });
+    expect(el.tagName).toBe("DIV");
+    expect(el).toHaveTextContent("S");
     expect(screen.getByText("Mala Siena")).toBeInTheDocument();
+  });
+
+  it("monograma usa a segunda palavra quando a primeira é o tipo de peça", () => {
+    expect(monogram("Conjunto Gola Alta Clássico")).toBe("G");
+    expect(monogram("Bota")).toBe("B");
   });
 
   it("mostra a imagem quando há URL", () => {

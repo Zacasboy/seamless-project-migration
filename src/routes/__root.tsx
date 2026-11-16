@@ -100,7 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: `${SITE.name} — Moda intemporal` },
       { name: "description", content: SITE.tagline },
-      { name: "theme-color", content: "#F6F0E8" },
+      { name: "theme-color", content: "#FBF8F4" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: SITE.name },
       { name: "twitter:card", content: "summary_large_image" },

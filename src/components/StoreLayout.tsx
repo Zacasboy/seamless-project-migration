@@ -199,7 +199,7 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
             </Link>
           </address>
         </div>
-        <div className="border-t border-[var(--sidebar-border)]">
+        <div className="border-t border-white/10">
           <p className="mx-auto max-w-7xl px-6 py-5 text-xs text-[var(--warm-greige)]">
             © {new Date().getFullYear()} {isPending(c.legalName) ? SITE.name : c.legalName}
             {!isPending(c.nif) && ` · NIPC ${c.nif}`}

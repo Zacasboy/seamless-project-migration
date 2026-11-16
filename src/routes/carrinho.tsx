@@ -43,7 +43,8 @@ function CartPage() {
                   <div className="h-24 w-20 shrink-0 overflow-hidden">
                     <ProductImage
                       product={{ title: i.title, image_url: i.image }}
-                      className="h-24 w-20 object-cover [&>span]:text-xs"
+                      compact
+                      className="h-24 w-20 object-cover"
                     />
                   </div>
                   <div className="min-w-0 flex-1">

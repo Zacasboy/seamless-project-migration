@@ -94,9 +94,12 @@ function Shell({ email, onSignOut }: { email: string; onSignOut: () => void }) {
 
   return (
     <div className="grid min-h-screen grid-cols-[minmax(0,1fr)] bg-background md:grid-cols-[248px_minmax(0,1fr)]">
-      <aside className="flex flex-col gap-5 bg-sidebar px-0 py-4 text-sidebar-foreground md:sticky md:top-0 md:h-screen md:overflow-y-auto md:px-3 md:py-6">
+      <aside className="flex flex-col gap-5 border-b border-sidebar-border bg-sidebar px-0 py-4 text-sidebar-foreground md:sticky md:border-b-0 md:border-r md:top-0 md:h-screen md:overflow-y-auto md:px-3 md:py-6">
         <div className="px-4 md:px-3">
-          <Link to="/admin" className="font-display text-xl tracking-[0.28em] uppercase">
+          <Link
+            to="/admin"
+            className="font-display text-xl tracking-[0.28em] text-[var(--cherry-velvet)] uppercase"
+          >
             Pallessiani
           </Link>
           <p className="mt-1 hidden text-xs text-sidebar-muted md:block">Painel de gestão</p>
@@ -107,7 +110,7 @@ function Shell({ email, onSignOut }: { email: string; onSignOut: () => void }) {
         >
           {NAV.map((g) => (
             <div key={g.group} className="flex gap-1 md:flex-col md:gap-0.5">
-              <span className="hidden px-3 pb-1 text-xs text-sidebar-muted md:block">
+              <span className="hidden px-3 pb-1.5 text-xs font-medium text-sidebar-muted md:block">
                 {g.group}
               </span>
               {g.items.map((n) => {
@@ -117,17 +120,17 @@ function Shell({ email, onSignOut }: { email: string; onSignOut: () => void }) {
                     key={n.to}
                     to={n.to}
                     activeOptions={{ exact: !!n.exact }}
-                    className="flex items-center justify-between gap-2 whitespace-nowrap rounded px-3 py-2 text-sm hover:bg-white/10"
+                    className="relative flex items-center justify-between gap-2 whitespace-nowrap rounded px-3 py-2 text-sm text-[#4A3A35] hover:bg-sidebar-accent hover:text-sidebar-foreground"
                     activeProps={{
                       className:
-                        "!bg-sidebar-primary !text-sidebar-primary-foreground font-semibold",
+                        "!bg-sidebar-primary !text-sidebar-primary-foreground font-semibold shadow-[inset_2px_0_0_var(--cherry-velvet),0_0_0_1px_var(--hairline)]",
                       "aria-current": "page",
                     }}
                   >
                     {n.label}
                     {count > 0 && (
                       <span
-                        className="num rounded-full bg-[#9B2C2C] px-1.5 text-[11px] font-semibold text-white"
+                        className="num min-w-5 rounded-full bg-[var(--cherry-velvet)] px-1.5 text-center text-[11px] font-semibold leading-5 text-white"
                         aria-label={`${count} a rever`}
                       >
                         {count}
@@ -159,7 +162,7 @@ function Shell({ email, onSignOut }: { email: string; onSignOut: () => void }) {
           {mig.data && !mig.data.applied && (
             <div
               role="status"
-              className="flex flex-wrap items-center justify-between gap-3 rounded border border-[#E6CFA6] bg-[#F3E7D2] px-4 py-3 text-sm text-[#5A3A08]"
+              className="flex flex-wrap items-center justify-between gap-3 rounded border border-[#E9D3AE] bg-[#FBF1E1] px-4 py-3 text-sm text-[#5A3A08]"
             >
               <span>
                 <b>A base de dados ainda não tem a atualização de 16/11.</b> Encomendas online,

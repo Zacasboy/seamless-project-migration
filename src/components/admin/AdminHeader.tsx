@@ -21,5 +21,11 @@ export function AdminHeader({
 }
 
 export function Panel({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded border bg-card p-5 ${className ?? ""}`}>{children}</section>;
+  return (
+    <section
+      className={`rounded-sm border bg-card p-5 shadow-[0_1px_0_rgb(49_24_28/0.04)] ${className ?? ""}`}
+    >
+      {children}
+    </section>
+  );
 }
