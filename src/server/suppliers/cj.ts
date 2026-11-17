@@ -33,8 +33,19 @@ function throttled<T>(fn: () => Promise<T>): Promise<T> {
   return run;
 }
 
-async function accessToken(): Promise<string> {
-  if (token && token.expires > Date.now() + 60_000) return token.value;
+let pendingToken: Promise<string> | null = null;
+
+// Nunca chamar dentro de throttled(): o pedido do token entra na mesma fila
+// e ficaria à espera do pedido que o chamou (bloqueio sem fim).
+function accessToken(): Promise<string> {
+  if (token && token.expires > Date.now() + 60_000) return Promise.resolve(token.value);
+  pendingToken ??= requestToken().finally(() => {
+    pendingToken = null;
+  });
+  return pendingToken;
+}
+
+async function requestToken(): Promise<string> {
   const res = await throttled(() =>
     getJson<CjResponse<{ accessToken: string; accessTokenExpiryDate: string }>>(
       "cj",
@@ -57,12 +68,14 @@ async function accessToken(): Promise<string> {
 }
 
 async function cj<T>(path: string): Promise<T> {
-  const call = async () =>
-    throttled(async () =>
+  const call = async () => {
+    const tok = await accessToken(); // fora da fila (ver accessToken)
+    return throttled(() =>
       getJson<CjResponse<T>>("cj", `${BASE}${path}`, {
-        headers: { "CJ-Access-Token": await accessToken() },
+        headers: { "CJ-Access-Token": tok },
       }),
     );
+  };
   let res = await call();
   if (res.code === 1600001 || res.code === 401) {
     token = null; // token inválido: pede um novo uma vez
@@ -160,7 +173,7 @@ export const cjAdapter: SupplierAdapter = {
     return mapCjProduct(p);
   },
   async ping() {
-    token = null;
+    // Pedido leve com o token em cache; só pede um novo se não houver.
     await accessToken();
   },
   async fetchStock(ids) {
@@ -180,3 +193,10 @@ export const cjAdapter: SupplierAdapter = {
     return out;
   },
 };
+
+/** Só para testes: limpa o token em memória. */
+export function __resetCjForTests() {
+  token = null;
+  pendingToken = null;
+  last = 0;
+}

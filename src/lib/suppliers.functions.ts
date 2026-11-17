@@ -15,6 +15,19 @@ async function assertAdmin(db: SupabaseClient<Database>, userId: string) {
   if (error || !data) throw new Error("Só administradores podem usar esta função.");
 }
 
+// Limite de tempo para não deixar o painel à espera sem fim.
+function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, rej) =>
+      setTimeout(
+        () => rej(new Error(`${what} demorou mais de ${Math.round(ms / 1000)} s. Tente de novo.`)),
+        ms,
+      ),
+    ),
+  ]);
+}
+
 const friendly = (e: unknown) =>
   e instanceof Error ? e.message : "Não foi possível falar com o fornecedor.";
 
@@ -62,7 +75,7 @@ export const previewSupplierProduct = createServerFn({ method: "POST" })
         `${ref.adapter.name} ainda não está ligado: faltam ${ref.adapter.env.join(", ")} no servidor.`,
       );
     try {
-      return await ref.adapter.fetchProduct(ref.id);
+      return await withTimeout(ref.adapter.fetchProduct(ref.id), 40_000, "O fornecedor");
     } catch (e) {
       throw new Error(friendly(e));
     }
@@ -101,7 +114,7 @@ export const importSupplierProduct = createServerFn({ method: "POST" })
     // Dados do produto lidos de novo no servidor: custo, imagens e stock nunca vêm do browser.
     let p;
     try {
-      p = await ref.adapter.fetchProduct(ref.id);
+      p = await withTimeout(ref.adapter.fetchProduct(ref.id), 40_000, "O fornecedor");
     } catch (e) {
       throw new Error(friendly(e));
     }

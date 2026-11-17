@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { mapCjProduct, cjAdapter } from "@/server/suppliers/cj";
 import { mapPrintful, printfulAvailable, printfulAdapter } from "@/server/suppliers/printful";
 import { bigbuyAdapter } from "@/server/suppliers/bigbuy";
@@ -123,5 +124,40 @@ describe("fornecedores: normalização", () => {
       available: true,
       stock: null,
     });
+  });
+});
+
+describe("CJ: pedidos à API", () => {
+  it("obtém o token e o produto sem bloquear a fila", async () => {
+    const { __resetCjForTests } = await import("@/server/suppliers/cj");
+    __resetCjForTests();
+    process.env["CJ_API_KEY"] = "teste";
+    const calls: string[] = [];
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+      const u = String(url);
+      calls.push(u);
+      const body = u.includes("getAccessToken")
+        ? {
+            code: 200,
+            result: true,
+            message: "ok",
+            data: { accessToken: "tok", accessTokenExpiryDate: "2099-01-01T00:00:00Z" },
+          }
+        : {
+            code: 200,
+            result: true,
+            message: "ok",
+            data: { pid: "P1", productNameEn: "Tote", variants: [] },
+          };
+      return new Response(JSON.stringify(body), { status: 200 });
+    });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const p = cjAdapter.fetchProduct("1234567890ABCD");
+    await vi.advanceTimersByTimeAsync(5000);
+    await expect(p).resolves.toMatchObject({ externalId: "P1", title: "Tote" });
+    expect(calls).toHaveLength(2);
+    vi.useRealTimers();
+    fetchMock.mockRestore();
+    delete process.env["CJ_API_KEY"];
   });
 });
