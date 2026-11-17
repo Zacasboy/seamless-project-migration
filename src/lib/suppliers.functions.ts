@@ -88,6 +88,15 @@ export const previewSupplierProduct = createServerFn({ method: "POST" })
     }
   });
 
+// Mensagem legível em vez do JSON de validação.
+function parseOrExplain<S extends z.ZodTypeAny>(schema: S, d: unknown): z.output<S> {
+  const r = schema.safeParse(d);
+  if (r.success) return r.data;
+  const i = r.error.issues[0]!;
+  const field = { variantIds: "Variantes", images: "Fotografias", title: "Nome", price: "Preço" }[String(i.path[0])] ?? String(i.path[0] ?? "Dados");
+  throw new Error(`${field}: ${i.message}`);
+}
+
 const importSchema = refSchema.extend({
   title: z.string().trim().min(2).max(160),
   category: z.enum(CATEGORIES),
@@ -95,7 +104,9 @@ const importSchema = refSchema.extend({
   price: z.number().positive().max(100000),
   fxRate: z.number().positive().max(100).default(1), // moeda do fornecedor → EUR
   publish: z.boolean(),
-  variantIds: z.array(z.string().max(64)).max(100).optional(),
+  variantIds: z.array(z.string().max(120)).max(1000, "no máximo 1000 variantes").optional(),
+  // Fotografias escolhidas, pela ordem (a primeira é a principal). Só aceita as do fornecedor.
+  images: z.array(z.string().url().max(1000)).min(1, "escolha pelo menos uma").max(20, "no máximo 20").optional(),
 });
 
 const slugify = (s: string) =>
@@ -109,7 +120,7 @@ const slugify = (s: string) =>
 
 export const importSupplierProduct = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((d: unknown) => importSchema.parse(d))
+  .validator((d: unknown) => parseOrExplain(importSchema, d))
   .handler(async ({ data, context }) => {
     const db = context.supabase;
     await assertAdmin(db, context.userId);
@@ -127,6 +138,8 @@ export const importSupplierProduct = createServerFn({ method: "POST" })
     }
     if (p.images.length === 0)
       throw new Error("O fornecedor não tem fotografias https para este produto.");
+    const images = data.images?.length ? data.images.filter((u) => p.images.includes(u)) : p.images.slice(0, 20);
+    if (images.length === 0) throw new Error("As fotografias escolhidas já não existem no fornecedor. Pré-visualize de novo.");
 
     const { data: supplier } = await db
       .from("suppliers")
@@ -169,9 +182,7 @@ export const importSupplierProduct = createServerFn({ method: "POST" })
 
     const uniq = (xs: (string | null)[]) =>
       [...new Set(xs.filter((x): x is string => !!x))].slice(0, 20);
-    const { data: product, error } = await db
-      .from("products")
-      .insert({
+    const row = {
         slug,
         title: data.title,
         description: p.description
@@ -184,7 +195,7 @@ export const importSupplierProduct = createServerFn({ method: "POST" })
         currency: "EUR",
         category: data.category,
         gender: data.gender,
-        image_url: p.images[0]!,
+        image_url: images[0]!,
         image_alt: data.title,
         size_options: uniq(variants.map((v) => v.size)),
         color_options: uniq(variants.map((v) => v.color)),
@@ -193,10 +204,16 @@ export const importSupplierProduct = createServerFn({ method: "POST" })
         sku: null,
         published: data.publish,
         is_demo: false,
-      })
+    };
+    // Galeria (coluna products.gallery); se a base de dados ainda não a tiver, grava só a principal.
+    let { data: product, error } = await db
+      .from("products")
+      .insert({ ...row, gallery: images } as typeof row)
       .select("id, slug")
       .single();
-    if (error) throw new Error(`Não foi possível gravar o produto: ${error.message}`);
+    if (error && /gallery/i.test(error.message))
+      ({ data: product, error } = await db.from("products").insert(row).select("id, slug").single());
+    if (error || !product) throw new Error(`Não foi possível gravar o produto: ${error?.message}`);
 
     const { error: linkError } = await db.from("product_supplier_links").insert({
       product_id: product.id,

@@ -23,7 +23,7 @@ type Row = Record<string, any>;
 export type Field = {
   key: string;
   label: string;
-  type?: "text" | "number" | "textarea" | "bool" | "select" | "list" | "datetime";
+  type?: "text" | "number" | "textarea" | "bool" | "select" | "list" | "datetime" | "gallery";
   options?: string[] | { value: string; label: string }[];
   required?: boolean;
   readOnly?: boolean;
@@ -42,6 +42,8 @@ export function validateRow(fields: Field[], row: Row) {
     const v = row[f.key];
     const empty = v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
     if (f.required && empty && f.type !== "bool") errors[f.key] = "Campo obrigatório.";
+    else if (!empty && f.type === "gallery" && (v as string[]).some((u) => !/^https:\/\/\S+$/.test(u)))
+      errors[f.key] = "Cada fotografia tem de ser um endereço https://.";
     else if (!empty && f.pattern && typeof v === "string" && !f.pattern.test(v))
       errors[f.key] = f.patternMessage ?? "Formato inválido.";
     else if (!empty && f.maxLength && typeof v === "string" && v.length > f.maxLength)
@@ -102,7 +104,12 @@ export function AdminCrud({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const openEditor = (r: Row) => {
-    setEditing(r);
+    // Galeria: sem lista guardada, começa pela fotografia principal (image_url).
+    const prefilled = { ...r };
+    for (const f of fields)
+      if (f.type === "gallery" && (!Array.isArray(r[f.key]) || r[f.key].length === 0))
+        prefilled[f.key] = r["image_url"] ? [r["image_url"]] : [];
+    setEditing(prefilled);
     setOriginal(r);
     setErrors({});
   };
@@ -431,6 +438,8 @@ function FieldInput({
             </option>
           ))}
         </select>
+      ) : f.type === "gallery" ? (
+        <GalleryInput id={id} value={(value as string[] | null) ?? []} onChange={onChange} readOnly={f.readOnly} />
       ) : f.type === "list" ? (
         <Input
           {...aria}
@@ -468,6 +477,87 @@ function FieldInput({
         />
       )}
       {note}
+    </div>
+  );
+}
+
+/** Fotografias do produto: a primeira é a principal. Remover, tornar principal e acrescentar por URL. */
+function GalleryInput({
+  id,
+  value,
+  onChange,
+  readOnly,
+}: {
+  id: string;
+  value: string[];
+  onChange: (v: string[]) => void;
+  readOnly?: boolean | undefined;
+}) {
+  const [url, setUrl] = useState("");
+  const valid = /^https:\/\/\S+$/.test(url.trim());
+  const add = () => {
+    if (!valid || value.includes(url.trim()) || value.length >= 20) return;
+    onChange([...value, url.trim()]);
+    setUrl("");
+  };
+  return (
+    <div className="mt-1 space-y-2">
+      {value.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Sem fotografias. A loja mostra «Fotografia em breve».</p>
+      ) : (
+        <ul className="grid grid-cols-4 gap-2">
+          {value.map((src, i) => (
+            <li key={src} className="relative">
+              <img
+                src={src}
+                alt={`Fotografia ${i + 1}`}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                className={`aspect-square w-full bg-muted object-cover ${i === 0 ? "outline outline-2 outline-[var(--brand-accent)]" : ""}`}
+              />
+              {i === 0 && (
+                <span className="absolute left-1 top-1 bg-[var(--brand-accent)] px-1 text-[10px] text-white">Principal</span>
+              )}
+              {!readOnly && (
+                <div className="mt-1 flex flex-col gap-0.5 text-[11px]">
+                  {i > 0 && (
+                    <button type="button" className="text-left underline-offset-2 hover:underline" onClick={() => onChange([src, ...value.filter((u) => u !== src)])}>
+                      Tornar principal
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    aria-label={`Remover fotografia ${i + 1}`}
+                    className="text-left text-destructive underline-offset-2 hover:underline"
+                    onClick={() => onChange(value.filter((u) => u !== src))}
+                  >
+                    Remover
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!readOnly && (
+        <div className="flex gap-2">
+          <Input
+            id={id}
+            value={url}
+            placeholder="https://… (acrescentar fotografia)"
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                add();
+              }
+            }}
+          />
+          <Button type="button" variant="outline" size="sm" onClick={add} disabled={!valid || value.length >= 20}>
+            Acrescentar
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

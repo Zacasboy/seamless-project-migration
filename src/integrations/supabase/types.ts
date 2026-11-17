@@ -127,6 +127,7 @@ export type ProductRow = {
   image_key: string | null;
   image_url: string | null;
   image_alt: string | null;
+  gallery?: string[];
   meta_title: string | null;
   meta_description: string | null;
   supplier: string | null;

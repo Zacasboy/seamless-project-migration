@@ -97,11 +97,10 @@ function Page() {
         { key: "color_options", label: "Cores (separadas por vírgula)", type: "list" },
         { key: "sku", label: "Referência interna (SKU)", maxLength: 60 },
         {
-          key: "image_url",
-          label: "URL da fotografia",
-          pattern: /^https:\/\/\S+$/,
-          patternMessage: "Use um endereço que comece por https://",
-          hint: "Por exemplo, um ficheiro no Supabase Storage do projeto pallessiani.",
+          key: "gallery",
+          label: "Fotografias",
+          type: "gallery",
+          hint: "A primeira é a principal. Endereços https://, até 20.",
         },
         {
           key: "image_alt",
@@ -121,6 +120,13 @@ function Page() {
         { key: "published", label: "Publicado na loja", type: "bool" },
         { key: "is_demo", label: "Registo de demonstração", type: "bool" },
       ]}
+      beforeSave={(payload, original) => {
+        const gallery = (payload["gallery"] as string[] | undefined) ?? [];
+        const out: Record<string, any> = { ...payload, image_url: gallery[0] ?? null };
+        // Base de dados ainda sem a coluna da galeria: grava só a principal.
+        if (!("gallery" in original)) delete out["gallery"];
+        return out;
+      }}
     />
   );
 }

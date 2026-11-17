@@ -113,19 +113,14 @@ function ProductPage() {
           {p.category}
         </Link>
       </nav>
-      <div className="mx-auto grid max-w-[1440px] gap-6 px-4 py-6 md:grid-cols-12 md:px-10 md:py-8">
-        <ProductImage
-          product={p}
-          loading="eager"
-          sizes="(min-width: 768px) 58vw, 100vw"
-          className="aspect-[4/5] w-full object-cover md:col-span-7"
-        />
-        <div className="product-card h-fit p-6 !text-left md:col-span-5 md:p-10">
+      <div className="mx-auto grid max-w-[1280px] gap-6 px-4 py-6 md:grid-cols-12 md:gap-10 md:px-10 md:py-8">
+        <ProductGallery product={p} />
+        <div className="product-card h-fit p-6 !text-left md:col-span-6 md:p-10 lg:col-span-6 lg:col-start-7">
           <p className="num flex justify-between gap-4 text-xs text-muted-foreground">
             <span>{p.category}</span>
             <span className="uppercase">Ref. {p.slug}</span>
           </p>
-          <h1 className="mt-4 text-4xl md:text-5xl">{p.title}</h1>
+          <h1 className="mt-4 text-3xl md:text-4xl">{p.title}</h1>
           <p className="spec mt-2">{specLine(p)}</p>
           <p className="num mt-4 text-2xl">{euro(Number(p.price))}</p>
           {STOCK_LABEL[p.stock_status] && (
@@ -133,7 +128,7 @@ function ProductPage() {
               {STOCK_LABEL[p.stock_status]}
             </p>
           )}
-          <p className="mt-6 leading-relaxed text-muted-foreground">{p.description}</p>
+          <p className="mt-6 whitespace-pre-line leading-relaxed text-muted-foreground">{p.description}</p>
           <dl className="mt-6 grid grid-cols-[120px_minmax(0,1fr)] border-t text-sm">
             {[
               ["Categoria", p.category],
@@ -217,5 +212,57 @@ function ProductPage() {
         </section>
       )}
     </StoreLayout>
+  );
+}
+
+/** Fotografia principal com tamanho contido (sem cortar a peça) e miniaturas das restantes. */
+function ProductGallery({
+  product: p,
+}: {
+  product: Parameters<typeof ProductImage>[0]["product"] & { gallery?: string[] | null };
+}) {
+  const main = productImage(p);
+  const photos = (p.gallery?.length ? p.gallery : main ? [main] : []).filter((u) => /^https:\/\//.test(u));
+  const [active, setActive] = useState(0);
+  const src = photos[Math.min(active, photos.length - 1)];
+  const alt = p.image_alt?.trim() || p.title;
+  return (
+    <div className="md:sticky md:top-6 md:col-span-6 md:self-start lg:col-span-5">
+      {src ? (
+        <div className="plate flex aspect-square max-h-[68vh] w-full items-center justify-center overflow-hidden">
+          <img
+            src={src}
+            alt={photos.length > 1 ? `${alt} (fotografia ${active + 1} de ${photos.length})` : alt}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            width={800}
+            height={800}
+            className="h-full w-full object-contain"
+          />
+        </div>
+      ) : (
+        <ProductImage product={p} loading="eager" className="aspect-square max-h-[68vh] w-full" />
+      )}
+      {photos.length > 1 && (
+        <ul className="mt-3 flex gap-2 overflow-x-auto pb-1" aria-label="Fotografias do produto">
+          {photos.map((u, i) => (
+            <li key={u} className="shrink-0">
+              <button
+                type="button"
+                aria-label={`Ver fotografia ${i + 1}`}
+                aria-current={i === active}
+                onClick={() => setActive(i)}
+                className={`block h-16 w-16 overflow-hidden border md:h-20 md:w-20 ${
+                  i === active ? "border-primary" : "border-transparent opacity-70 hover:opacity-100"
+                }`}
+              >
+                <img src={u} alt="" loading="lazy" className="h-full w-full object-cover" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
