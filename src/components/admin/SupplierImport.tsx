@@ -74,7 +74,7 @@ export function SupplierConnections() {
               </StatusPill>
               <span className="text-muted-foreground">
                 {s.configured
-                  ? `Última sincronização: ${when(s.lastSyncedAt)}${s.lastError ? ` · erro: ${s.lastError}` : ""}`
+                  ? `Última sincronização: ${when(s.lastSyncedAt)}${s.lastError ? ` · ${s.lastError}` : ""}`
                   : `Definir no servidor: ${s.env.join(", ")}`}
               </span>
             </li>

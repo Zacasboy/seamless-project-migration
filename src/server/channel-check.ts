@@ -32,6 +32,8 @@ export async function runChannelCheck(db: Db, opts: { write: boolean }): Promise
   const out: ChannelCheck[] = [];
   for (const s of suppliers ?? []) {
     const ch = channelOf(s.name);
+    const linkedCount = (links ?? []).filter((l) => l.supplier_id === s.id).length;
+    // Canais por API: só contam os produtos ligados ao fornecedor (os exemplos antigos não).
     const mine = (products ?? []).filter((p) => norm(p.supplier) === norm(s.name));
     const lastImport =
       mine
@@ -53,7 +55,7 @@ export async function runChannelCheck(db: Db, opts: { write: boolean }): Promise
     }
     const verdict = assessChannel({
       method: ch.method,
-      products: mine.length,
+      products: ch.method === "api" ? linkedCount : mine.length,
       unknownStock: mine.filter((p) => p.stock_status === "unknown").length,
       lastImport,
       lastStockCheck,
@@ -65,7 +67,7 @@ export async function runChannelCheck(db: Db, opts: { write: boolean }): Promise
       website: s.website,
       method: ch.method,
       docsUrl: ch.docsUrl ?? null,
-      products: mine.length,
+      products: ch.method === "api" ? linkedCount : mine.length,
       lastActivity: lastStockCheck ?? lastImport,
       ...verdict,
     });
