@@ -24,6 +24,8 @@ export type SupplierProduct = {
   categoryHint: string;
   currency: string;
   variants: SupplierVariant[];
+  /** Ficha técnica do fornecedor (ex.: "Upper Material": "Suede"). */
+  specs?: { name: string; value: string }[];
 };
 
 export type StockResult = {

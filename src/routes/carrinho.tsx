@@ -55,7 +55,11 @@ function CartPage() {
                     >
                       {i.title}
                     </Link>
-                    {i.size && <p className="text-sm text-muted-foreground">Tamanho {i.size}</p>}
+                    {(i.color || i.size) && (
+                      <p className="text-sm text-muted-foreground">
+                        {[i.color && `Cor ${i.color}`, i.size && `Tamanho ${i.size}`].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
                     <p className="num text-sm text-muted-foreground">{euro(i.price)}</p>
                   </div>
                   <div className="flex items-center gap-2">

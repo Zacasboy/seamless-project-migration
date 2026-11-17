@@ -79,6 +79,7 @@ export function AdminCrud({
   canCreate = true,
   canDelete = true,
   beforeSave,
+  editorExtra,
   emptyText = "Sem registos.",
 }: {
   table: string;
@@ -93,6 +94,8 @@ export function AdminCrud({
   canCreate?: boolean;
   canDelete?: boolean;
   beforeSave?: (payload: Row, original: Row) => Row;
+  /** Bloco extra no editor (ex.: fornecedor do produto); pode alterar o registo em edição. */
+  editorExtra?: (row: Row, setRow: (r: Row) => void) => ReactNode;
   emptyText?: string;
 }) {
   const qc = useQueryClient();
@@ -306,10 +309,11 @@ export function AdminCrud({
       )}
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing?.["id"] ? "Editar" : "Novo registo"}</DialogTitle>
           </DialogHeader>
+          {editing && editorExtra?.(editing, setEditing)}
           {editing && (
             <form
               id="crud"

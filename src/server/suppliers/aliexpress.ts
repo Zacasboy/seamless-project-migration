@@ -183,7 +183,9 @@ type AeSku = {
   currency_code?: string;
   ae_sku_property_dtos?: unknown;
 };
+type AeProp = { attr_name?: string; attr_value?: string };
 type AeResult = {
+  ae_item_properties?: unknown;
   ae_item_base_info_dto?: { subject?: string; detail?: string; product_id?: number | string; currency_code?: string; product_status_type?: string };
   ae_multimedia_info_dto?: { image_urls?: string };
   ae_item_sku_info_dtos?: unknown;
@@ -223,6 +225,10 @@ export function mapAliExpressProduct(productId: string, r: AeResult): SupplierPr
     categoryHint: base.subject ?? "",
     currency: list<AeSku>(r.ae_item_sku_info_dtos)[0]?.currency_code ?? base.currency_code ?? "EUR",
     variants,
+    specs: list<AeProp>(r.ae_item_properties)
+      .map((x) => ({ name: (x.attr_name ?? "").trim(), value: (x.attr_value ?? "").trim() }))
+      .filter((x) => x.name && x.value && x.name.length <= 60 && x.value.length <= 120)
+      .slice(0, 30),
   };
 }
 

@@ -18,18 +18,14 @@ export const Route = createFileRoute("/")({
   head: () =>
     seo({
       description:
-        "Malas em pele, mocassins clássicos e conjuntos completos com estilo intemporal. Envio para Portugal e União Europeia.",
+        "Calçado, malhas, casacos, calças, malas e acessórios de estilo intemporal. Envio para Portugal e União Europeia.",
       path: "/",
     }),
   loader: ({ context }) => context.queryClient.ensureQueryData(productsQuery),
   component: Home,
 });
 
-const CATS = [
-  { cat: "Malas", line: "Pele lisa, granulada e envernizada" },
-  { cat: "Calçado", line: "Mocassins para mulher e homem" },
-  { cat: "Conjuntos", line: "Looks completos, prontos a vestir" },
-] as const;
+import { CATEGORIES } from "@/lib/taxonomy";
 
 const SERVICE: [string, string][] = [
   ["Entrega", "Portugal e União Europeia"],
@@ -45,6 +41,11 @@ function Home() {
     .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))
     .slice(0, 8);
   const looks = byCat("Conjuntos");
+  // Categorias com artigos (as reais primeiro), até seis mosaicos.
+  const CATS = CATEGORIES.map((c) => ({ cat: c.name, line: c.line }))
+    .filter(({ cat }) => byCat(cat).length > 0)
+    .sort((a, b) => Number(a.cat === "Conjuntos") - Number(b.cat === "Conjuntos"))
+    .slice(0, 6);
   return (
     <StoreLayout>
       <Banner />
@@ -54,7 +55,7 @@ function Home() {
           <h2 className="text-2xl md:text-3xl">Comprar por categoria</h2>
           <p className="num text-xs text-muted-foreground">{data.length} artigos em catálogo</p>
         </div>
-        <div className="mt-6 grid gap-3 md:grid-cols-3 md:gap-6">
+        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-6">
           {CATS.map(({ cat, line }) => {
             const items = byCat(cat);
             const lead = items[0];
@@ -129,7 +130,7 @@ function Banner() {
               id="banner-titulo"
               className="max-w-[16ch] text-[clamp(2.4rem,4.6vw,4rem)] leading-[1.02]"
             >
-              Malas, calçado e conjuntos para durar.
+              Calçado, malhas e acessórios para durar.
             </h1>
             <p className="mt-5 max-w-[42ch] leading-relaxed opacity-80">
               Pele, camurça e malha escolhidas para os meses frios, com envio para Portugal e para a
@@ -145,10 +146,10 @@ function Banner() {
             </Link>
             <Link
               to="/loja"
-              search={{ categoria: "Conjuntos" }}
+              search={{ categoria: "Calçado" }}
               className="inline-flex h-12 items-center border border-background/60 px-7 text-[0.9375rem] tracking-[0.02em] hover:bg-background/10"
             >
-              Ver conjuntos
+              Ver calçado
             </Link>
           </div>
         </div>

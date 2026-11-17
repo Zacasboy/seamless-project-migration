@@ -6,11 +6,14 @@ import { reopenConsent } from "@/lib/consent";
 import { SITE, isPending } from "@/lib/site";
 import { supabase } from "@/integrations/supabase/client";
 
-const SHOP = [
-  { label: "Malas", categoria: "Malas" },
-  { label: "Calçado", categoria: "Calçado" },
-  { label: "Conjuntos", categoria: "Conjuntos" },
-] as const;
+import { CATEGORIES } from "@/lib/taxonomy";
+
+// Menu da loja: categorias (com subcategorias) por esta ordem; "Conjuntos" fica em Ver tudo.
+const SHOP = CATEGORIES.filter((c) => c.name !== "Conjuntos").map((c) => ({
+  label: c.name,
+  categoria: c.name,
+  subs: c.subs as readonly string[],
+}));
 
 function useSignedIn() {
   const [signedIn, setSignedIn] = useState(false);
@@ -38,38 +41,17 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
       </a>
       <header className="sticky top-0 z-30 border-b bg-card">
         <div className="mx-auto grid h-16 max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 md:px-10">
-          <nav aria-label="Loja" className="hidden items-center gap-7 md:flex">
-            {SHOP.map((s) => (
-              <Link
-                key={s.label}
-                to="/loja"
-                search={{ categoria: s.categoria }}
-                className="nav-link hover:text-[var(--brand-accent)]"
-              >
-                {s.label}
-              </Link>
-            ))}
-            <Link
-              to="/loja"
-              className="nav-link text-[var(--brand-accent)] hover:underline"
-              activeOptions={{ includeSearch: false }}
+          <div>
+            <button
+              className="-ml-2 p-2 lg:hidden"
+              onClick={() => setOpen(true)}
+              aria-label="Abrir menu"
+              aria-expanded={open}
             >
-              Ver tudo
-            </Link>
-          </nav>
-          <button
-            className="-ml-2 p-2 md:hidden"
-            onClick={() => setOpen(true)}
-            aria-label="Abrir menu"
-            aria-expanded={open}
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <Link
-            to="/"
-            className="logo text-base md:text-lg"
-            aria-label="Pallessiani, página inicial"
-          >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
+          <Link to="/" className="logo text-base md:text-lg" aria-label="Pallessiani, página inicial">
             Pallessiani
           </Link>
           <div className="flex items-center justify-end gap-6">
@@ -97,12 +79,51 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
             </Link>
           </div>
         </div>
+        {/* Segunda linha: categorias; ao passar ou focar, mostra as subcategorias. */}
+        <nav aria-label="Categorias" className="hidden border-t lg:block">
+          <ul className="mx-auto flex max-w-[1440px] items-center justify-center gap-9 px-10">
+            {SHOP.map((s) => (
+              <li key={s.label} className="group relative">
+                <Link
+                  to="/loja"
+                  search={{ categoria: s.categoria }}
+                  className="nav-link block py-3 hover:text-[var(--brand-accent)]"
+                >
+                  {s.label}
+                </Link>
+                {s.subs.length > 0 && (
+                  <div className="invisible absolute left-1/2 top-full z-40 min-w-48 -translate-x-1/2 border bg-card py-2 opacity-0 shadow-sm transition-[opacity,visibility] duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+                    {s.subs.map((sub) => (
+                      <Link
+                        key={sub}
+                        to="/loja"
+                        search={{ categoria: s.categoria, tipo: sub }}
+                        className="block px-4 py-2 text-sm hover:bg-[var(--plate)]"
+                      >
+                        {sub}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+            <li>
+              <Link
+                to="/loja"
+                className="nav-link block py-3 text-[var(--brand-accent)] hover:underline"
+                activeOptions={{ includeSearch: false }}
+              >
+                Ver tudo
+              </Link>
+            </li>
+          </ul>
+        </nav>
       </header>
 
       {open && (
-        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-label="Menu">
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-label="Menu">
           <div className="absolute inset-0 bg-foreground/30" onClick={() => setOpen(false)} />
-          <nav className="absolute inset-y-0 left-0 flex w-72 flex-col gap-1 bg-card p-6">
+          <nav className="absolute inset-y-0 left-0 flex w-80 flex-col gap-1 overflow-y-auto bg-card p-6">
             <button
               className="mb-6 self-end p-2"
               onClick={() => setOpen(false)}
@@ -114,15 +135,31 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
               Loja
             </Link>
             {SHOP.map((s) => (
-              <Link
-                key={s.label}
-                to="/loja"
-                search={{ categoria: s.categoria }}
-                onClick={() => setOpen(false)}
-                className="py-2 font-display text-2xl"
-              >
-                {s.label}
-              </Link>
+              <div key={s.label} className="py-1">
+                <Link
+                  to="/loja"
+                  search={{ categoria: s.categoria }}
+                  onClick={() => setOpen(false)}
+                  className="block py-1 font-display text-2xl"
+                >
+                  {s.label}
+                </Link>
+                {s.subs.length > 0 && (
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 pb-2 text-sm text-muted-foreground">
+                    {s.subs.map((sub) => (
+                      <Link
+                        key={sub}
+                        to="/loja"
+                        search={{ categoria: s.categoria, tipo: sub }}
+                        onClick={() => setOpen(false)}
+                        className="hover:text-foreground"
+                      >
+                        {sub}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
             <hr className="my-4" />
             <Link to="/contacto" onClick={() => setOpen(false)} className="py-2">

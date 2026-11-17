@@ -3,7 +3,9 @@ import { publicClient } from "@/lib/products.functions";
 import { SITE } from "@/lib/site";
 
 const STATIC = ["/", "/loja", "/contacto", "/termos", "/privacidade"];
-const CATS = ["Malas", "Calçado", "Conjuntos"];
+import { CATEGORY_NAMES } from "@/lib/taxonomy";
+
+const CATS = CATEGORY_NAMES;
 
 const xmlEscape = (s: string) =>
   s.replace(

@@ -107,6 +107,7 @@ type CjProduct = {
   categoryName?: string;
   sellPrice?: number | string;
   variants?: CjVariant[];
+  materialNameEn?: string | string[];
 };
 
 const sumInventory = (raw: CjInventory[] | CjInventory | undefined | null) => {
@@ -131,6 +132,11 @@ export function mapCjProduct(p: CjProduct): SupplierProduct {
     images: httpsOnly([p.bigImage, ...set]),
     categoryHint: p.categoryName ?? "",
     currency: "USD",
+    specs: [p.materialNameEn]
+      .flat()
+      .filter((m): m is string => !!m && typeof m === "string")
+      .map((m) => ({ name: "Material", value: m.replace(/[[\]"]/g, "").trim() }))
+      .filter((x) => x.value),
     variants: (p.variants ?? []).map((v) => {
       const stock = sumInventory(v.inventories);
       return {

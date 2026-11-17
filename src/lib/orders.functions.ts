@@ -30,6 +30,7 @@ export const orderInputSchema = z.object({
         product_id: z.string().uuid(),
         quantity: z.number().int().min(1).max(10),
         size: z.string().max(20).optional(),
+        color: z.string().max(30).optional(),
       }),
     )
     .min(1, "O carrinho está vazio.")

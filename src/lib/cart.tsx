@@ -10,6 +10,7 @@ export type CartItem = {
   price: number;
   image: string;
   size?: string | undefined;
+  color?: string | undefined;
   qty: number;
 };
 
@@ -28,7 +29,7 @@ const CartContext = createContext<Ctx | null>(null);
 const KEY = "pallessiani-cart";
 export const MAX_QTY = 10;
 
-const keyOf = (id: string, size?: string) => `${id}:${size ?? ""}`;
+const keyOf = (id: string, size?: string, color?: string) => `${id}:${size ?? ""}:${color ?? ""}`;
 const clampQty = (n: number) => Math.min(MAX_QTY, Math.max(1, Math.floor(n) || 1));
 
 function sanitize(raw: unknown): CartItem[] {
@@ -47,7 +48,12 @@ function sanitize(raw: unknown): CartItem[] {
       ...i,
       image: typeof i.image === "string" ? i.image : "",
       size: typeof i.size === "string" ? i.size : undefined,
-      key: keyOf(i.id, typeof i.size === "string" ? i.size : undefined),
+      color: typeof i.color === "string" ? i.color.slice(0, 30) : undefined,
+      key: keyOf(
+        i.id,
+        typeof i.size === "string" ? i.size : undefined,
+        typeof i.color === "string" ? i.color : undefined,
+      ),
       qty: clampQty(i.qty),
     }));
 }
@@ -78,7 +84,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     ready,
     add: (item) =>
       setItems((prev) => {
-        const key = keyOf(item.id, item.size);
+        const key = keyOf(item.id, item.size, item.color);
         const found = prev.find((i) => i.key === key);
         if (found) return prev.map((i) => (i.key === key ? { ...i, qty: clampQty(i.qty + 1) } : i));
         return [...prev, { ...item, key, qty: 1 }].slice(0, 20);

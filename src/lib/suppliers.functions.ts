@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // dentro dos handlers para nunca entrarem no código do browser.
 
 const PROVIDERS = ["cj", "bigbuy", "printful", "brandsgateway", "aliexpress"] as const;
-const CATEGORIES = ["Malas", "Calçado", "Conjuntos"] as const;
+import { CATEGORY_NAMES as CATEGORIES } from "@/lib/taxonomy";
 
 async function assertAdmin(db: SupabaseClient<Database>, userId: string) {
   const { data, error } = await db.rpc("has_role", { _user_id: userId, _role: "admin" });
@@ -26,6 +26,16 @@ function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
       ),
     ),
   ]);
+}
+
+// Ficha do fornecedor em linhas "Nome: valor", sem dados irrelevantes para o cliente.
+const SPEC_SKIP = /^(brand name|brand|model number|model|origin|place of origin|cn|certification|high-concerned chemical|choice|semi_choice|item id|sku|is_customized|release date|department name)$/i;
+function specText(specs: { name: string; value: string }[] | undefined, existing: string) {
+  const have = existing.toLowerCase();
+  return (specs ?? [])
+    .filter((s) => !SPEC_SKIP.test(s.name) && !have.includes(`${s.name.toLowerCase()}:`))
+    .map((s) => `${s.name}: ${s.value}`)
+    .join("\n");
 }
 
 const friendly = (e: unknown) =>
@@ -185,11 +195,11 @@ export const importSupplierProduct = createServerFn({ method: "POST" })
     const row = {
         slug,
         title: data.title,
-        description: p.description
-          .replace(/<[^>]+>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 2000),
+        description: (() => {
+          const d = p.description.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 2000);
+          const specs = specText(p.specs, d);
+          return [d, specs].filter(Boolean).join("\n\n").slice(0, 4000);
+        })(),
         price: Math.round(data.price * 100) / 100,
         cost,
         currency: "EUR",
@@ -240,6 +250,7 @@ export const importSupplierProduct = createServerFn({ method: "POST" })
           trigger: "import",
           userId: context.userId,
           productIds: [product.id],
+          hints: { [product.id]: [p.title, specText(p.specs, "")] },
         });
       } catch (e) {
         console.error("[regras após importação]", (e as Error).message);
@@ -330,4 +341,75 @@ export const checkChannels = createServerFn({ method: "POST" })
       checkedAt: new Date().toISOString(),
       channels: await runChannelCheck(context.supabase, { write: true }),
     };
+  });
+
+// Link de importação de um produto (para o painel: ver no fornecedor, recarregar fotografias e ficha).
+export const getProductSupplier = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => z.object({ productId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: link } = await context.supabase
+      .from("product_supplier_links")
+      .select("external_product_id, supplier_product_url, last_checked_at, suppliers(name, provider_key)")
+      .eq("product_id", data.productId)
+      .maybeSingle();
+    if (!link) return null;
+    const sup = link.suppliers as unknown as { name: string; provider_key: string | null } | null;
+    return {
+      supplier: sup?.name ?? null,
+      provider: sup?.provider_key ?? null,
+      externalId: link.external_product_id,
+      url: link.supplier_product_url,
+      lastCheckedAt: link.last_checked_at,
+    };
+  });
+
+// Vai buscar de novo ao fornecedor: fotografias (para escolher) e ficha técnica (acrescentada à descrição);
+// depois corre as rotinas neste produto com o nome original do fornecedor como pista.
+export const refreshFromSupplier = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => z.object({ productId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const db = context.supabase;
+    await assertAdmin(db, context.userId);
+    const { data: link } = await db
+      .from("product_supplier_links")
+      .select("external_product_id, suppliers(provider_key)")
+      .eq("product_id", data.productId)
+      .maybeSingle();
+    const key = (link?.suppliers as unknown as { provider_key: string | null } | null)?.provider_key;
+    if (!link?.external_product_id || !key) throw new Error("Este produto não foi importado por link: não há fornecedor para consultar.");
+    const { ADAPTERS } = await import("@/server/suppliers");
+    const adapter = ADAPTERS[key as keyof typeof ADAPTERS];
+    if (!adapter?.configured()) throw new Error("O fornecedor deste produto não está ligado.");
+    let p;
+    try {
+      p = await withTimeout(adapter.fetchProduct(link.external_product_id), 40_000, "O fornecedor");
+    } catch (e) {
+      throw new Error(friendly(e));
+    }
+    const { data: prod } = await db.from("products").select("description").eq("id", data.productId).single();
+    const current = (prod?.description ?? "").trim();
+    const specs = specText(p.specs, current);
+    if (specs) {
+      const { error } = await db
+        .from("products")
+        .update({ description: [current, specs].filter(Boolean).join("\n\n").slice(0, 4000) })
+        .eq("id", data.productId);
+      if (error) throw new Error(error.message);
+    }
+    let summary = specs ? "Ficha do fornecedor acrescentada à descrição." : "A ficha do fornecedor já estava na descrição.";
+    if (process.env["SUPABASE_SERVICE_ROLE_KEY"]?.trim()) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { runRules } = await import("@/server/agents/rules");
+      const r = await runRules(supabaseAdmin as unknown as import("@/server/agents/journal").Db, {
+        trigger: "manual",
+        userId: context.userId,
+        productIds: [data.productId],
+        hints: { [data.productId]: [p.title, specText(p.specs, "")] },
+      });
+      if (!("skipped" in r)) summary += ` Rotinas: ${r.summary}`;
+    }
+    return { images: p.images.slice(0, 30), title: p.title, summary };
   });

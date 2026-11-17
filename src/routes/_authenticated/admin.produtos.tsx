@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Admin CRUD uses dynamic table/column keys not represented by the generated Supabase type map. */
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminCrud } from "@/components/admin/AdminCrud";
+import { ProductSupplierPanel } from "@/components/admin/ProductSupplierPanel";
 import { ProductImage } from "@/components/ProductImage";
 import { StatusPill } from "@/components/StatusPill";
 import { euro } from "@/lib/cart";
+import { CATEGORY_NAMES, CATEGORIES } from "@/lib/taxonomy";
 
 export const Route = createFileRoute("/_authenticated/admin/produtos")({ component: Page });
 
@@ -28,7 +30,7 @@ function Page() {
       intro="Cada produto precisa de título, categoria, preço, meta descrição e, quando tiver fotografia, texto alternativo. Fotografias só por URL https; prefira WebP até 200 KB e 1200 px de largura."
       searchKeys={["title", "slug", "supplier", "sku"]}
       filterKey="category"
-      filterOptions={["Malas", "Calçado", "Conjuntos"]}
+      filterOptions={[...CATEGORY_NAMES]}
       columns={[
         {
           key: "title",
@@ -42,7 +44,16 @@ function Page() {
             </span>
           ),
         },
-        { key: "category", label: "Categoria" },
+        {
+          key: "category",
+          label: "Categoria",
+          render: (r) => (
+            <span>
+              {r["category"]}
+              {r["garment_type"] && <span className="block text-xs text-muted-foreground">{r["garment_type"]}</span>}
+            </span>
+          ),
+        },
         {
           key: "price",
           label: "Preço",
@@ -63,6 +74,11 @@ function Page() {
           render: (r) =>
             r["image_url"] ? "Sim" : <span className="text-muted-foreground">Em falta</span>,
         },
+        {
+          key: "supplier",
+          label: "Origem",
+          render: (r) => <span className="text-xs">{r["supplier"] ?? "—"}</span>,
+        },
         { key: "published", label: "Publicado", render: (r) => (r["published"] ? "Sim" : "Não") },
       ]}
       fields={[
@@ -82,8 +98,15 @@ function Page() {
           key: "category",
           label: "Categoria",
           type: "select",
-          options: ["Malas", "Calçado", "Conjuntos"],
+          options: [...CATEGORY_NAMES],
           required: true,
+        },
+        {
+          key: "garment_type",
+          label: "Subcategoria",
+          type: "select",
+          options: CATEGORIES.flatMap((c) => c.subs.map((s) => ({ value: s, label: `${c.name} › ${s}` }))),
+          hint: "Deve pertencer à categoria escolhida. As rotinas corrigem-na pelo nome se ficar errada.",
         },
         {
           key: "gender",
@@ -120,6 +143,7 @@ function Page() {
         { key: "published", label: "Publicado na loja", type: "bool" },
         { key: "is_demo", label: "Registo de demonstração", type: "bool" },
       ]}
+      editorExtra={(row, setRow) => <ProductSupplierPanel row={row} setRow={setRow} />}
       beforeSave={(payload, original) => {
         const gallery = (payload["gallery"] as string[] | undefined) ?? [];
         const out: Record<string, any> = { ...payload, image_url: gallery[0] ?? null };

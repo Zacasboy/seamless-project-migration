@@ -320,3 +320,11 @@
     border-color: var(--footer-line);
   }
 }
+
+/* Faixas deslizantes (fotografias dos produtos): sem barra de deslocamento visível. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

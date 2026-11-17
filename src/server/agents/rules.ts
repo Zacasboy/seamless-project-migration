@@ -3,7 +3,22 @@
 // Todas as escritas passam pelo diário (podem ser desfeitas no painel).
 import { STORE_CATEGORIES, stripHtml } from "@/lib/import-products";
 import type { Db } from "./journal";
-import { brandFrom, buildTitle, detectLang, findMaterial, findType, looksLikeSpecDump, seoDescription, titleProblems } from "./product-text";
+import { bestType } from "@/lib/taxonomy";
+import {
+  brandFrom,
+  buildTitle,
+  cleanColorName,
+  detectLang,
+  findDetails,
+  findMaterial,
+  findType,
+  hasBrazilian,
+  looksLikeSpecDump,
+  seoDescription,
+  titleProblems,
+  toEuropeanPortuguese,
+  type Lang,
+} from "./product-text";
 import { write, type Ctx } from "./tools";
 
 import { RULES, type ProductLanguage, type RuleKey, type RulesConfig } from "@/lib/agents";
@@ -126,15 +141,37 @@ const COLORS: [string, string][] = [
   ["wine", "Bordeaux"], ["pink", "Rosa"], ["yellow", "Amarelo"], ["purple", "Roxo"], ["orange", "Laranja"], ["gold", "Dourado"],
   ["golden", "Dourado"], ["silver", "Prateado"], ["khaki", "Caqui"], ["apricot", "Damasco"], ["camel", "Camel"], ["coffee", "Café"],
   ["cream", "Creme"], ["off white", "Branco-sujo"], ["multicolor", "Multicor"], ["leopard", "Leopardo"], ["transparent", "Transparente"],
+  ["leopard print", "Padrão leopardo"], ["burnt orange", "Laranja queimado"], ["ankra red", "Vermelho"], ["chocolat", "Chocolate"],
+  ["chocolate", "Chocolate"], ["champagne", "Champanhe"], ["ivory", "Marfim"], ["tan", "Camel"], ["olive", "Verde-oliva"],
+  ["matte black", "Preto mate"], ["black gloss", "Preto brilhante"], ["glossy black", "Preto brilhante"], ["silver gray", "Cinzento prateado"],
 ];
+const MODS: [RegExp, string, string][] = [
+  [/^light\s+/i, "", " claro"], [/^dark\s+/i, "", " escuro"], [/^deep\s+/i, "", " escuro"], [/^pale\s+/i, "", " claro"],
+];
+
+/** Cor inglesa → portuguesa, com "light/dark" ("Light beige" → "Bege claro"). */
+function colorToPt(v: string) {
+  const low = v.toLowerCase();
+  const exact = COLORS.find(([en]) => en === low)?.[1];
+  if (exact) return exact;
+  for (const [re, , suffix] of MODS)
+    if (re.test(low)) {
+      const base = COLORS.find(([en]) => en === low.replace(re, ""))?.[1];
+      if (base) return `${base}${suffix}`;
+    }
+  return v;
+}
 
 export function normalizeColors(colors: string[], lang: ProductLanguage) {
   const out = new Map<string, string>();
   for (const c of colors) {
-    let v = c.trim().replace(/\s+/g, " ");
+    // Códigos do fornecedor e pinyin fora; português do Brasil → europeu.
+    const base = cleanColorName(c.replace(/\s+/g, " "), lang === "en" ? "en" : "pt");
+    if (!base) continue;
+    let v = lang === "en" ? base : toEuropeanPortuguese(base);
     if (!v) continue;
     const low = v.toLowerCase();
-    if (lang === "pt") v = COLORS.find(([en]) => en === low)?.[1] ?? v;
+    if (lang === "pt") v = colorToPt(v);
     else if (lang === "en") {
       const hit = COLORS.find(([, pt]) => pt.toLowerCase() === low);
       v = hit ? hit[0] : v;
@@ -142,7 +179,8 @@ export function normalizeColors(colors: string[], lang: ProductLanguage) {
     v = v === v.toLowerCase() || v === v.toUpperCase() ? v.charAt(0).toUpperCase() + v.slice(1).toLowerCase() : v;
     if (!out.has(v.toLowerCase())) out.set(v.toLowerCase(), v);
   }
-  return [...out.values()].slice(0, 20);
+  // Se todos eram códigos, mantém os originais (melhor do que ficar sem cores).
+  return out.size ? [...out.values()].slice(0, 20) : colors.slice(0, 20);
 }
 
 export function inferGender(text: string): "mulher" | "homem" | null {
@@ -154,7 +192,7 @@ export function inferGender(text: string): "mulher" | "homem" | null {
 
 export function inferType(text: string) {
   const t = findType(text);
-  return t ? { type: t.pt.toLowerCase(), category: t.category } : null;
+  return t ? { type: t.sub || t.pt, category: t.category } : null;
 }
 
 export function metaTitle(title: string) {
@@ -199,7 +237,7 @@ type ProductRow = {
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 /** Calcula as alterações de um produto. Devolve só os campos que mudam e as regras que atuaram. */
-export function planProduct(p: ProductRow, cfg: RulesConfig) {
+export function planProduct(p: ProductRow, cfg: RulesConfig, hints: string[] = []) {
   const patch: Record<string, unknown> = {};
   const rules = new Set<RuleKey>();
   const set = (k: string, v: unknown, r: RuleKey) => {
@@ -212,28 +250,50 @@ export function planProduct(p: ProductRow, cfg: RulesConfig) {
   const desc = ruleOn(cfg, "descricoes") && p.description ? cleanDescription(p.description) : (p.description ?? "");
   if (desc.length >= 20) set("description", desc, "descricoes");
 
-  // Nome = tipo de produto + material, na língua do produto (ou na escolhida nas definições).
-  const lang = cfg.product_language === "manter" ? detectLang(p.title) : cfg.product_language;
-  const type = findType(p.title) ?? findType(p.garment_type ?? "");
+  // Nome = tipo de produto [+ detalhe] + material, na língua do produto (ou na escolhida nas definições).
+  // Língua: a do nome; se o nome não chegar para a detetar (ex. "Mocassins"), a da descrição; senão, português.
+  const lang: Lang =
+    cfg.product_language === "manter" ? (detectLang(p.title) ?? detectLang(desc.slice(0, 400)) ?? "pt") : cfg.product_language;
+  const head = desc.slice(0, 250);
+  const hint = hints.join("\n"); // ex.: nome e ficha originais do fornecedor (ao recarregar)
+  // Tipo: o do nome, salvo se for genérico ("Sapatos") e houver um mais específico (subcategoria, fornecedor, ficha).
+  const type = bestType(p.title, p.garment_type, hint, head);
+  const titleType = findType(p.title);
   let title = p.title;
   if (ruleOn(cfg, "titulos")) {
     title = cleanTitle(p.title);
-    const wrongLang = cfg.product_language !== "manter" && detectLang(p.title) !== cfg.product_language;
-    if (lang && type && (titleProblems(p.title, brandFrom(desc)).length || wrongLang))
-      title = buildTitle(type, findMaterial(p.title, desc), lang);
+    const material = findMaterial(p.title, `${desc}\n${hint}`);
+    const titleHasMaterial = material ? findMaterial(p.title, "") !== null : true;
+    const defects =
+      titleProblems(p.title, brandFrom(desc)).length > 0 ||
+      (cfg.product_language !== "manter" && detectLang(p.title) !== cfg.product_language) ||
+      (lang === "pt" && hasBrazilian(p.title)) ||
+      !titleType ||
+      (type !== null && titleType.sub !== type.sub) || // contradição: "Sapatos" que são mocassins
+      !titleHasMaterial; // falta o material que a ficha indica
+    if (type && defects) title = buildTitle(type, material, lang, findDetails(p.title, hint, head));
+    else if (lang === "pt") title = toEuropeanPortuguese(title);
   }
   set("title", title, "titulos");
 
   if (ruleOn(cfg, "opcoes")) {
     if (p.size_options?.length) set("size_options", normalizeSizes(p.size_options), "opcoes");
-    if (p.color_options?.length) set("color_options", normalizeColors(p.color_options, cfg.product_language), "opcoes");
+    if (p.color_options?.length) {
+      const colorLang = cfg.product_language === "manter" ? lang : cfg.product_language;
+      set("color_options", normalizeColors(p.color_options, colorLang), "opcoes");
+    }
   }
 
   if (ruleOn(cfg, "classificacao")) {
     const text = `${p.title} ${p.garment_type ?? ""}`; // nome original: o corte pode ter tirado o tipo
-    const kind = type ? { type: type.pt.toLowerCase(), category: type.category } : inferType(desc.slice(0, 300));
-    if (!STORE_CATEGORIES.includes(p.category as never) && kind) set("category", kind.category, "classificacao");
-    if (!p.garment_type && kind) set("garment_type", kind.type, "classificacao");
+    if (type) {
+      // Categoria e subcategoria da loja (garment_type guarda a subcategoria).
+      if (p.category !== type.category) set("category", type.category, "classificacao");
+      if (type.sub && p.garment_type !== type.sub) set("garment_type", type.sub, "classificacao");
+    } else {
+      const kind = inferType(head);
+      if (!STORE_CATEGORIES.includes(p.category as never) && kind) set("category", kind.category, "classificacao");
+    }
     const g = inferGender(text) ?? inferGender(desc.slice(0, 400));
     if ((!p.gender || p.gender === "unisex") && g) set("gender", g, "classificacao");
   }
@@ -244,13 +304,17 @@ export function planProduct(p: ProductRow, cfg: RulesConfig) {
   if (ruleOn(cfg, "seo")) {
     // Só substitui o que estava vazio ou foi gerado automaticamente a partir do nome antigo.
     const mt = p.meta_title?.trim();
-    if (!mt || mt === metaTitle(p.title)) set("meta_title", metaTitle(title), "seo");
+    // Gerado por nós ("… | Pallessiani") mas de um nome antigo: acompanha o nome atual.
+    const staleMeta = !!mt && mt.endsWith(" | Pallessiani") && mt !== metaTitle(title);
+    if (!mt || mt === metaTitle(p.title) || staleMeta) set("meta_title", metaTitle(title), "seo");
     const md = p.meta_description?.trim();
-    if (!md || looksLikeSpecDump(md) || md.startsWith(p.title) || md.startsWith(`${title} `) || md.startsWith(`${title}.`))
-      set("meta_description", lang ? seoDescription({ title, lang, gender, sizes, colors }) : metaDescription(desc), "seo");
+    const ourTemplate = !!md && /(Compre na Pallessiani, com entrega em Portugal\.|Shop at Pallessiani with delivery to Portugal\.)$/.test(md);
+    if (!md || ourTemplate || looksLikeSpecDump(md) || md.startsWith(p.title) || md.startsWith(`${title} `) || md.startsWith(`${title}.`))
+      set("meta_description", seoDescription({ title, lang, gender, sizes, colors }), "seo");
   }
   const alt = p.image_alt?.trim();
-  if (ruleOn(cfg, "alt") && (!alt || alt === p.title || titleProblems(alt).some((x) => x !== "demasiado longo") || alt.length > 120)) {
+  const staleAlt = !!alt && alt.length <= 60 && !!findType(alt) && !alt.startsWith(title); // nome antigo
+  if (ruleOn(cfg, "alt") && (!alt || alt === p.title || staleAlt || titleProblems(alt).some((x) => x !== "demasiado longo") || alt.length > 120)) {
     set("image_alt", cutWords(colors.length === 1 ? `${title}, ${colors[0]}` : title, 190), "alt");
   }
 
@@ -266,7 +330,9 @@ export function planProduct(p: ProductRow, cfg: RulesConfig) {
   if (desc.length < 120) alerts.push("descrição muito curta");
   if (!p.image_url) alerts.push("sem fotografia");
   if (ruleOn(cfg, "titulos") && !type) alerts.push("tipo de produto não identificado: nome não reconstruído");
-  else if (ruleOn(cfg, "titulos") && !lang) alerts.push("língua do nome não identificada: escolha-a nas definições");
+  else if (ruleOn(cfg, "titulos") && !findMaterial(title, `${desc}\n${hint}`)) alerts.push("material desconhecido: use «Recarregar do fornecedor» em Produtos ou indique-o na descrição");
+  if (p.color_options?.length && p.color_options.every((c) => !cleanColorName(c, "pt"))) alerts.push("as cores são só códigos do fornecedor");
+
   // O nome promete pele, mas a ficha do fornecedor diz material sintético.
   if (/\b(leather|couro|pele|piel)\b/i.test(title) && !/\b(faux|synthetic|sint[eé]tica)\b/i.test(title) && /\b(microfib(er|re|ra)|pu|synthetic|sint[eé]tic[oa]|faux|vegan|pvc)\b/i.test(desc))
     alerts.push("o nome diz pele, mas a ficha indica material sintético (corrigir para não enganar o cliente)");
@@ -285,7 +351,13 @@ export async function loadRulesConfig(db: Db): Promise<RulesConfig> {
 
 export async function runRules(
   db: Db,
-  opts: { trigger: "manual" | "cron" | "import"; userId?: string | null; productIds?: string[] },
+  opts: {
+    trigger: "manual" | "cron" | "import";
+    userId?: string | null;
+    productIds?: string[];
+    /** Pistas por produto (nome e ficha originais do fornecedor), usadas para tipo, detalhe e material. */
+    hints?: Record<string, string[]>;
+  },
 ) {
   const { data: settings } = await db.from("agent_settings").select("enabled, autonomy").eq("agent", "regras").maybeSingle();
   if (settings && !settings.enabled && opts.trigger !== "manual") return { skipped: true as const };
@@ -322,7 +394,7 @@ export async function runRules(
     const failed: string[] = [];
     let changed = 0;
     for (const p of (products ?? []) as ProductRow[]) {
-      const plan = planProduct(p, cfg);
+      const plan = planProduct(p, cfg, opts.hints?.[p.id] ?? []);
       if (plan.alerts.length) alerts.push({ title: p.title, alerts: plan.alerts });
       if (!plan.rules.length) continue;
       try {

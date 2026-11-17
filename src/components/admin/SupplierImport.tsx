@@ -6,7 +6,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { euro } from "@/lib/cart";
-import { mapCategory, mapGender, type StoreCategory } from "@/lib/import-products";
+import { STORE_CATEGORIES, mapCategory, mapGender, type StoreCategory } from "@/lib/import-products";
 import {
   getSupplierStatus,
   importSupplierProduct,
@@ -291,9 +291,9 @@ export function SupplierLinkImport() {
                   aria-invalid={!form.category}
                 >
                   <option value="">Escolher…</option>
-                  <option>Malas</option>
-                  <option>Calçado</option>
-                  <option>Conjuntos</option>
+                  {STORE_CATEGORIES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
                 </select>
               </div>
               <div>

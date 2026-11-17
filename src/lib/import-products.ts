@@ -2,8 +2,10 @@
 // (BrandsGateway, CJDropshipping, Bigbuy, Spocket, Shopify…).
 // Tudo corre no browser do administrador; só os produtos válidos são gravados.
 
-export const STORE_CATEGORIES = ["Malas", "Calçado", "Conjuntos"] as const;
-export type StoreCategory = (typeof STORE_CATEGORIES)[number];
+import { CATEGORY_NAMES, mapCategory as mapByType, type Category } from "./taxonomy";
+
+export const STORE_CATEGORIES = CATEGORY_NAMES;
+export type StoreCategory = Category;
 
 export type Field =
   | "handle"
@@ -169,22 +171,8 @@ export function parseNumber(v: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-const BAGS =
-  /\b(bag|bags|mala|malas|tote|handbag|clutch|backpack|mochila|carteira|wallet|purse|crossbody|shoulder)\b/;
-const SHOES =
-  /\b(shoe|shoes|sneaker|sneakers|loafer|loafers|boot|boots|sandal|sandals|heel|heels|pump|pumps|mule|mules|mocassim|mocassins|sapato|sapatos|sapatilha|sapatilhas|bota|botas|calcado|footwear|slipper)\b/;
-
 export function mapCategory(raw: string, title: string): StoreCategory | null {
-  const t = norm(`${raw} ${title}`);
-  if (BAGS.test(t)) return "Malas";
-  if (SHOES.test(t)) return "Calçado";
-  if (
-    /\b(set|conjunto|outfit|look|dress|vestido|coat|casaco|jacket|blazer|sweater|camisola|knit|shirt|camisa|top|trousers|calcas|pants|jeans|skirt|saia|suit|fato)\b/.test(
-      t,
-    )
-  )
-    return "Conjuntos";
-  return null;
+  return mapByType(raw, title);
 }
 
 export function mapGender(raw: string, title: string): "mulher" | "homem" | "unisex" {

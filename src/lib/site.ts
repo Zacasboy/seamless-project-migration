@@ -7,7 +7,7 @@ export const PENDING = "PREENCHER";
 
 export const SITE = {
   name: "Pallessiani",
-  tagline: "Malas, calçado e conjuntos de estilo intemporal.",
+  tagline: "Calçado, roupa e acessórios de estilo intemporal.",
   // URL público sem barra final, por exemplo https://pallessiani.pt
   url: (import.meta.env["VITE_SITE_URL"] as string | undefined)?.replace(/\/+$/, "") ?? "",
   company: {

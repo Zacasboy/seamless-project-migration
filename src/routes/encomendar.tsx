@@ -54,7 +54,7 @@ function Checkout() {
     e.preventDefault();
     setFormError("");
     const input = {
-      items: cart.items.map((i) => ({ product_id: i.id, quantity: i.qty, size: i.size })),
+      items: cart.items.map((i) => ({ product_id: i.id, quantity: i.qty, size: i.size, color: i.color })),
       shipping: { name: "", phone: "", address: "", postal_code: "", city: "", nif: "", ...form },
       notes,
       acceptTerms: accept,
@@ -219,6 +219,7 @@ function Checkout() {
               <li key={i.key} className="flex justify-between gap-3 py-2">
                 <span>
                   {i.qty} × {i.title}
+                  {i.color && <span className="text-muted-foreground"> · {i.color}</span>}
                   {i.size && <span className="text-muted-foreground"> · {i.size}</span>}
                 </span>
                 <span className="num">{euro(i.price * i.qty)}</span>

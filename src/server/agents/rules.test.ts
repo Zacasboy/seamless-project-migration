@@ -92,9 +92,9 @@ describe("rotinas: funções", () => {
     expect(inferGender("Sapatos Casuais Masculinos")).toBe("homem");
     expect(inferGender("Women's tote bag")).toBe("mulher");
     expect(inferGender("Unisex sneakers")).toBeNull();
-    expect(inferType("... Trabalho Mocassins de Couro")).toEqual({ type: "mocassins", category: "Calçado" });
-    expect(inferType("Casual Leather Shoes")).toEqual({ type: "sapatos", category: "Calçado" });
-    expect(inferType("Crossbody bag")).toEqual({ type: "mala tiracolo", category: "Malas" });
+    expect(inferType("... Trabalho Mocassins de Couro")).toEqual({ type: "Mocassins", category: "Calçado" });
+    expect(inferType("Casual Leather Shoes")).toEqual({ type: "Sapatos", category: "Calçado" });
+    expect(inferType("Crossbody bag")).toEqual({ type: "Malas tiracolo", category: "Malas" });
   });
 
   it("meta description ignora avisos e tem até 160 caracteres", () => {
@@ -110,7 +110,7 @@ describe("rotinas: plano por produto", () => {
   it("AliExpress: limpa, classifica e preenche sem tocar no preço", () => {
     const r = planProduct(AE, cfg);
     expect(r.patch["gender"]).toBe("homem");
-    expect(r.patch["garment_type"]).toBe("mocassins");
+    expect(r.patch["garment_type"]).toBe("Mocassins");
     expect(r.patch["meta_title"]).toMatch(/ \| Pallessiani$/);
     expect(String(r.patch["meta_title"]).length).toBeLessThanOrEqual(70);
     expect(r.patch["image_alt"]).toBeTruthy();
@@ -123,7 +123,7 @@ describe("rotinas: plano por produto", () => {
     const r = planProduct(CJ, cfg);
     expect(r.patch["title"]).toBe("Microfibre shoes");
     expect(r.patch).not.toHaveProperty("gender");
-    expect(r.patch["garment_type"]).toBe("sapatos");
+    expect(r.patch["garment_type"]).toBe("Sapatos");
     expect(r.patch["meta_title"]).toBe("Microfibre shoes | Pallessiani");
     expect(r.patch["meta_description"]).toBe("Microfibre shoes for men. Sizes 37–45. Colour: Black. Shop at Pallessiani with delivery to Portugal.");
     expect(r.patch["image_alt"]).toBe("Microfibre shoes, Black");
@@ -180,7 +180,7 @@ describe("nomes: tipo de produto + material", () => {
   it("monta o nome na língua do produto", () => {
     const loafer = findType("loafers")!;
     const suede = findMaterial("suede", "")!;
-    expect(buildTitle(loafer, suede, "pt")).toBe("Mocassins de camurça");
+    expect(buildTitle(loafer, suede, "pt")).toBe("Loafers de camurça");
     expect(buildTitle(loafer, suede, "en")).toBe("Suede loafers");
     expect(buildTitle(loafer, null, "en")).toBe("Loafers");
   });
@@ -200,14 +200,61 @@ describe("nomes: tipo de produto + material", () => {
     expect(planProduct(once, cfg).rules).toEqual([]);
     const cj = { ...CJ, ...planProduct(CJ, cfg).patch } as typeof CJ;
     expect(planProduct(cj, cfg).rules).toEqual([]);
-    const manual = { ...CJ, title: "Sapatos Derby pretos", image_alt: "Fashion Men's British Style Casual Leather Shoes size 40" };
+    const manual = { ...CJ, title: "Sapatos Derby de microfibra", image_alt: "Fashion Men's British Style Casual Leather Shoes size 40" };
     const m = planProduct(manual, cfg).patch;
-    expect(m).not.toHaveProperty("title");
-    expect(m["image_alt"]).toBe("Sapatos Derby pretos, Black"); // texto alternativo antigo do fornecedor é substituído
+    expect(m).not.toHaveProperty("title"); // já tem tipo e material: fica
+    expect(m["image_alt"]).toBe("Sapatos Derby de microfibra, Preto"); // cores na língua do nome // texto alternativo antigo do fornecedor é substituído
+    // Sem o material da ficha, o nome é completado.
+    expect(planProduct({ ...CJ, title: "Sapatos Derby pretos" }, cfg).patch["title"]).toBe("Sapatos Derby de microfibra");
   });
 
   it("com língua fixada, traduz tipo e material", () => {
     const r = planProduct({ ...CJ, title: "Leather loafers" }, { rules: {}, product_language: "pt" });
-    expect(r.patch["title"]).toBe("Mocassins de microfibra");
+    expect(r.patch["title"]).toBe("Loafers de microfibra");
+  });
+});
+
+import { cleanColorName, toEuropeanPortuguese } from "./product-text";
+
+describe("casos reais da loja (17/11)", () => {
+  const base = { ...AE, description: "", size_options: [] as string[], color_options: [] as string[], meta_title: null as string | null, meta_description: null as string | null, image_alt: null as string | null, garment_type: null as string | null, gender: "homem" };
+  const t = (o: Partial<typeof base>) => planProduct({ ...base, ...o } as typeof AE, cfg).patch;
+
+  it("corrige nomes contraditórios ou incompletos e a categoria", () => {
+    expect(t({ title: "Sapatos Couro de Cervo", garment_type: "mocassins" })["title"]).toBe("Mocassins de couro");
+    const calca = t({ title: "Calça Casual", garment_type: "vestido", category: "Conjuntos" });
+    expect(calca["title"]).toBe("Calças");
+    expect(calca["category"]).toBe("Calças");
+    expect(calca["garment_type"]).toBe("Casuais");
+    const terno = t({ title: "Calças de Terno", category: "Conjuntos" });
+    expect(terno["title"]).toBe("Calças sociais");
+    expect(terno["garment_type"]).toBe("Sociais");
+    const sueter = t({ title: "Suéter de Tricô com Meio Zíper", category: "Conjuntos" });
+    expect(sueter["title"]).toBe("Camisola de malha com meio fecho");
+    expect(sueter["category"]).toBe("Camisolas");
+    expect(t({ title: "Suéter com bordados", category: "Conjuntos" })["title"]).toBe("Camisola com bordados");
+    const cachecol = t({ title: "Cachecol de Lã com Franjas", category: "Conjuntos", description: "Material: Mistura de lã" });
+    expect(cachecol["category"]).toBe("Acessórios");
+    expect(cachecol["garment_type"]).toBe("Cachecóis");
+    expect(cachecol).not.toHaveProperty("title"); // já tem tipo, material e detalhe
+    const cinto = t({ title: "Cinto de couro fivela quadrada", category: "Conjuntos" });
+    expect(cinto).not.toHaveProperty("title");
+    expect(cinto["category"]).toBe("Acessórios");
+    const casaco = t({ title: "Casaco de pele sintética", category: "Conjuntos", description: "Jaqueta Casual com Gola Dobrada" });
+    expect(casaco["category"]).toBe("Casacos");
+    expect(casaco).not.toHaveProperty("title"); // já está completo
+  });
+
+  it("limpa cores: códigos, pinyin e português do Brasil", () => {
+    expect(cleanColorName("Kd503", "pt")).toBeNull();
+    expect(cleanColorName("608 Black", "en")).toBe("Black");
+    expect(cleanColorName("coffee B", "en")).toBe("coffee");
+    expect(cleanColorName("Heise", "pt")).toBe("Preto");
+    expect(cleanColorName("Lvse", "en")).toBe("Green");
+    expect(normalizeColors(["Marrom", "Cinza escuro", "Exército verde"], "pt")).toEqual(["Castanho", "Cinzento escuro", "Verde-tropa"]);
+    expect(normalizeColors(["Brown", "Light Gray"], "pt")).toEqual(["Castanho", "Cinzento claro"]);
+    expect(normalizeColors(["coffee B", "coffee E", "black A"], "en")).toEqual(["Coffee", "Black"]);
+    expect(normalizeColors(["Kd503", "Kd504"], "pt")).toEqual(["Kd503", "Kd504"]); // só códigos: mantém
+    expect(toEuropeanPortuguese("Suéter com Zíper")).toBe("Camisola com Fecho");
   });
 });
