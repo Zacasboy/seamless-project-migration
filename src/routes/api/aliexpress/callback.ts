@@ -3,8 +3,13 @@ import { timingSafeEqual } from "node:crypto";
 
 // Regresso da autorização AliExpress. Só aceita se o "state" coincidir com o cookie
 // criado pelo painel (startAliExpressAuth), troca o código pelo token e guarda-o cifrado.
+// Não usar Response.redirect(): os cabeçalhos ficam imutáveis e o servidor
+// falha ao acrescentar o Set-Cookie que apaga o "state".
 const back = (origin: string, result: string) =>
-  Response.redirect(`${origin}/admin/importar?aliexpress=${result}`, 303);
+  new Response(null, {
+    status: 303,
+    headers: { Location: `${origin}/admin/importar?aliexpress=${result}` },
+  });
 
 async function callback(request: Request) {
   const url = new URL(request.url);
