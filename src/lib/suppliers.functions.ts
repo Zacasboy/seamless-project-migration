@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // Funções do painel para fornecedores com API. Os módulos de servidor são carregados
 // dentro dos handlers para nunca entrarem no código do browser.
 
-const PROVIDERS = ["cj", "bigbuy", "printful", "brandsgateway"] as const;
+const PROVIDERS = ["cj", "bigbuy", "printful", "brandsgateway", "aliexpress"] as const;
 const CATEGORIES = ["Malas", "Calçado", "Conjuntos"] as const;
 
 async function assertAdmin(db: SupabaseClient<Database>, userId: string) {
@@ -40,9 +40,16 @@ export const getSupplierStatus = createServerFn({ method: "GET" })
       .from("suppliers")
       .select("provider_key, last_synced_at, last_sync_error")
       .not("provider_key", "is", null);
+    const { credentialStatus } = await import("@/server/supplier-credentials");
+    const ae = ADAPTERS.aliexpress.configured() ? await credentialStatus("aliexpress") : null;
     return Object.values(ADAPTERS).map((a) => {
       const r = rows?.find((x) => x.provider_key === a.key);
       return {
+        // Só a AliExpress usa autorização da conta (OAuth); sem segredos, só datas.
+        oauth:
+          a.key === "aliexpress"
+            ? { authorized: !!ae, expiresAt: ae?.expires_at ?? null, account: ae?.account ?? null }
+            : null,
         key: a.key,
         name: a.name,
         env: a.env,
@@ -68,7 +75,7 @@ export const previewSupplierProduct = createServerFn({ method: "POST" })
     const ref = resolveRef(data.input, data.provider);
     if (!ref)
       throw new Error(
-        "Não reconheci o link. Cole o link do produto na CJ, BigBuy ou Printful, ou escolha o fornecedor e cole a referência.",
+        "Não reconheci o link. Cole o link do produto na CJ, AliExpress, BigBuy ou Printful, ou escolha o fornecedor e cole a referência.",
       );
     if (!ref.adapter.configured())
       throw new Error(
@@ -253,6 +260,33 @@ export const checkOrderSupplierStock = createServerFn({ method: "POST" })
       problems: [...new Set(res.problems.map((p) => title(p.product_id)))],
       unverified: [...new Set(res.unverified.map(title))],
     };
+  });
+
+// Início da ligação à conta AliExpress: devolve o link de autorização e guarda um
+// "state" aleatório num cookie httpOnly, confirmado no regresso (proteção CSRF).
+export const startAliExpressAuth = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { aliexpressAdapter, authorizeUrl, aliexpressRedirectUri } = await import(
+      "@/server/suppliers/aliexpress"
+    );
+    if (!aliexpressAdapter.configured())
+      throw new Error(
+        `Faltam no servidor: ${aliexpressAdapter.env.join(", ")}. Defina-as na Vercel e faça redeploy.`,
+      );
+    const { randomBytes } = await import("node:crypto");
+    const { setCookie, getRequestUrl } = await import("@tanstack/react-start/server");
+    const state = randomBytes(24).toString("base64url");
+    const redirectUri = aliexpressRedirectUri(getRequestUrl().origin);
+    setCookie("ae_oauth_state", state, {
+      httpOnly: true,
+      secure: redirectUri.startsWith("https://"),
+      sameSite: "lax",
+      path: "/api/aliexpress",
+      maxAge: 600,
+    });
+    return { url: authorizeUrl(redirectUri, state) };
   });
 
 // Verificação automática dos canais selecionados; grava o estado de cada fornecedor.

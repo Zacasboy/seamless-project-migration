@@ -1,7 +1,7 @@
 // Contrato comum dos fornecedores ligados por API.
 // Só corre no servidor: as chaves vêm de variáveis de ambiente e nunca chegam ao browser.
 
-export type ProviderKey = "cj" | "printful" | "bigbuy" | "brandsgateway";
+export type ProviderKey = "cj" | "printful" | "bigbuy" | "brandsgateway" | "aliexpress";
 
 export type SupplierVariant = {
   id: string; // id da variante no fornecedor

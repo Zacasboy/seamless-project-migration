@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Panel } from "@/components/admin/AdminHeader";
 import { StatusPill } from "@/components/StatusPill";
@@ -11,11 +11,12 @@ import {
   getSupplierStatus,
   importSupplierProduct,
   previewSupplierProduct,
+  startAliExpressAuth,
   syncSuppliersNow,
 } from "@/lib/suppliers.functions";
 
 type Preview = Awaited<ReturnType<typeof previewSupplierProduct>>;
-type Provider = "cj" | "bigbuy" | "printful" | "brandsgateway";
+type Provider = "cj" | "bigbuy" | "printful" | "brandsgateway" | "aliexpress";
 
 // Preço com margem, arredondado para terminar em ,90.
 const withMarkup = (cost: number, markup: number) =>
@@ -42,6 +43,30 @@ export function SupplierConnections() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const connectAe = useMutation({
+    mutationFn: () => startAliExpressAuth(),
+    onSuccess: ({ url }) => window.location.assign(url),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Resultado do regresso da AliExpress (?aliexpress=...), mostrado uma vez.
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    const r = u.searchParams.get("aliexpress");
+    if (!r) return;
+    const msg: Record<string, [boolean, string]> = {
+      ligado: [true, "Conta AliExpress ligada."],
+      recusado: [false, "A autorização na AliExpress foi cancelada."],
+      "estado-invalido": [false, "A ligação expirou ou não começou neste painel. Tente de novo."],
+      "por-configurar": [false, "Faltam variáveis da AliExpress no servidor."],
+      erro: [false, "A AliExpress não aceitou a autorização. Tente de novo."],
+    };
+    const [ok, text] = msg[r] ?? [false, "Resposta desconhecida da AliExpress."];
+    (ok ? toast.success : toast.error)(text);
+    u.searchParams.delete("aliexpress");
+    window.history.replaceState(null, "", u.toString());
+    void qc.invalidateQueries({ queryKey: ["admin", "supplier-status"] });
+  }, [qc]);
 
   return (
     <Panel className="p-0">
@@ -66,16 +91,40 @@ export function SupplierConnections() {
           {(status.data ?? []).map((s) => (
             <li
               key={s.key}
-              className="grid gap-2 px-5 py-3 text-sm sm:grid-cols-[180px_120px_minmax(0,1fr)] sm:items-center"
+              className="grid gap-2 px-5 py-3 text-sm sm:grid-cols-[180px_140px_minmax(0,1fr)] sm:items-center"
             >
               <span className="font-medium">{s.name}</span>
-              <StatusPill tone={s.configured ? "pass" : "warn"}>
-                {s.configured ? "Ligado" : "Por ligar"}
+              <StatusPill tone={s.configured && (!s.oauth || s.oauth.authorized) ? "pass" : "warn"}>
+                {!s.configured
+                  ? "Por ligar"
+                  : s.oauth && !s.oauth.authorized
+                    ? "Falta autorizar"
+                    : "Ligado"}
               </StatusPill>
-              <span className="text-muted-foreground">
-                {s.configured
-                  ? `Última sincronização: ${when(s.lastSyncedAt)}${s.lastError ? ` · ${s.lastError}` : ""}`
-                  : `Definir no servidor: ${s.env.join(", ")}`}
+              <span className="flex flex-wrap items-center gap-3 text-muted-foreground">
+                <span>
+                  {!s.configured
+                    ? `Definir no servidor: ${s.env.join(", ")}`
+                    : s.oauth && !s.oauth.authorized
+                      ? "Autorize a conta AliExpress para importar e verificar stock."
+                      : `Última sincronização: ${when(s.lastSyncedAt)}${s.lastError ? ` · ${s.lastError}` : ""}${
+                          s.oauth?.expiresAt ? ` · autorização válida até ${when(s.oauth.expiresAt)}` : ""
+                        }`}
+                </span>
+                {s.configured && s.oauth && (
+                  <Button
+                    size="sm"
+                    variant={s.oauth.authorized ? "outline" : "default"}
+                    onClick={() => connectAe.mutate()}
+                    disabled={connectAe.isPending}
+                  >
+                    {connectAe.isPending
+                      ? "A abrir…"
+                      : s.oauth.authorized
+                        ? "Ligar de novo"
+                        : "Ligar AliExpress"}
+                  </Button>
+                )}
               </span>
             </li>
           ))}
@@ -206,6 +255,7 @@ export function SupplierLinkImport() {
           <option value="bigbuy">BigBuy</option>
           <option value="printful">Printful</option>
           <option value="brandsgateway">BrandsGateway</option>
+          <option value="aliexpress">AliExpress</option>
         </select>
         <Button type="submit" disabled={load.isPending || input.trim().length < 3}>
           {load.isPending ? "A consultar…" : "Pré-visualizar"}

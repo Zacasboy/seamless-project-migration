@@ -1,3 +1,4 @@
+import { aliexpressAdapter } from "./aliexpress";
 import { bigbuyAdapter } from "./bigbuy";
 import { brandsgatewayAdapter } from "./brandsgateway";
 import { cjAdapter } from "./cj";
@@ -9,6 +10,7 @@ export const ADAPTERS: Record<ProviderKey, SupplierAdapter> = {
   bigbuy: bigbuyAdapter,
   printful: printfulAdapter,
   brandsgateway: brandsgatewayAdapter,
+  aliexpress: aliexpressAdapter,
 };
 
 /** Descobre o fornecedor e o id a partir do texto colado (link ou referência). */

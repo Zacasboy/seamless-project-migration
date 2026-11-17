@@ -36,6 +36,7 @@ import { Route as AuthenticatedAdminProdutosRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminRadarRouteImport } from './routes/_authenticated/admin.radar'
 import { Route as AuthenticatedAdminTrafegoRouteImport } from './routes/_authenticated/admin.trafego'
 import { Route as AuthenticatedAdminUtilizadoresRouteImport } from './routes/_authenticated/admin.utilizadores'
+import { Route as ApiAliexpressCallbackRouteImport } from './routes/api/aliexpress/callback'
 import { Route as ApiCronSyncStockRouteImport } from './routes/api/cron/sync-stock'
 
 const IndexRoute = IndexRouteImport.update({
@@ -182,6 +183,11 @@ const AuthenticatedAdminUtilizadoresRoute =
     path: '/utilizadores',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const ApiAliexpressCallbackRoute = ApiAliexpressCallbackRouteImport.update({
+  id: '/api/aliexpress/callback',
+  path: '/api/aliexpress/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronSyncStockRoute = ApiCronSyncStockRouteImport.update({
   id: '/api/cron/sync-stock',
   path: '/api/cron/sync-stock',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/admin/radar': typeof AuthenticatedAdminRadarRoute
   '/admin/trafego': typeof AuthenticatedAdminTrafegoRoute
   '/admin/utilizadores': typeof AuthenticatedAdminUtilizadoresRoute
+  '/api/aliexpress/callback': typeof ApiAliexpressCallbackRoute
   '/api/cron/sync-stock': typeof ApiCronSyncStockRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/admin/radar': typeof AuthenticatedAdminRadarRoute
   '/admin/trafego': typeof AuthenticatedAdminTrafegoRoute
   '/admin/utilizadores': typeof AuthenticatedAdminUtilizadoresRoute
+  '/api/aliexpress/callback': typeof ApiAliexpressCallbackRoute
   '/api/cron/sync-stock': typeof ApiCronSyncStockRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
@@ -273,6 +281,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/radar': typeof AuthenticatedAdminRadarRoute
   '/_authenticated/admin/trafego': typeof AuthenticatedAdminTrafegoRoute
   '/_authenticated/admin/utilizadores': typeof AuthenticatedAdminUtilizadoresRoute
+  '/api/aliexpress/callback': typeof ApiAliexpressCallbackRoute
   '/api/cron/sync-stock': typeof ApiCronSyncStockRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
@@ -304,6 +313,7 @@ export interface FileRouteTypes {
     | '/admin/radar'
     | '/admin/trafego'
     | '/admin/utilizadores'
+    | '/api/aliexpress/callback'
     | '/api/cron/sync-stock'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/admin/radar'
     | '/admin/trafego'
     | '/admin/utilizadores'
+    | '/api/aliexpress/callback'
     | '/api/cron/sync-stock'
     | '/admin'
   id:
@@ -362,6 +373,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/radar'
     | '/_authenticated/admin/trafego'
     | '/_authenticated/admin/utilizadores'
+    | '/api/aliexpress/callback'
     | '/api/cron/sync-stock'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
+  ApiAliexpressCallbackRoute: typeof ApiAliexpressCallbackRoute
   ApiCronSyncStockRoute: typeof ApiCronSyncStockRoute
 }
 
@@ -575,6 +588,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUtilizadoresRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/api/aliexpress/callback': {
+      id: '/api/aliexpress/callback'
+      path: '/api/aliexpress/callback'
+      fullPath: '/api/aliexpress/callback'
+      preLoaderRoute: typeof ApiAliexpressCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cron/sync-stock': {
       id: '/api/cron/sync-stock'
       path: '/api/cron/sync-stock'
@@ -644,6 +664,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
+  ApiAliexpressCallbackRoute: ApiAliexpressCallbackRoute,
   ApiCronSyncStockRoute: ApiCronSyncStockRoute,
 }
 export const routeTree = rootRouteImport

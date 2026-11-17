@@ -9,7 +9,7 @@ export type ChannelMethod = "api" | "api-possible" | "csv" | "stock" | "none";
 
 export type Channel = {
   method: ChannelMethod;
-  provider?: "cj" | "printful" | "bigbuy" | "brandsgateway";
+  provider?: "cj" | "printful" | "bigbuy" | "brandsgateway" | "aliexpress";
   /** Página onde se obtém a chave de API ou a documentação oficial (verificada). */
   docsUrl?: string;
   note: string;
@@ -47,9 +47,10 @@ export const CHANNELS: Record<string, Channel> = {
     note: "API aberta com token pessoal. Ligação por fazer.",
   },
   AliExpress: {
-    method: "api-possible",
+    method: "api",
+    provider: "aliexpress",
     docsUrl: "https://openservice.aliexpress.com/",
-    note: "API de dropshipping com aprovação da AliExpress. Até lá, CSV.",
+    note: "Link do produto. Precisa de ALIEXPRESS_APP_KEY, ALIEXPRESS_APP_SECRET e ligar a conta no painel.",
   },
   DSers: { method: "csv", note: "Camada sobre a AliExpress. Preferir a API da AliExpress." },
   Wholesale2B: {

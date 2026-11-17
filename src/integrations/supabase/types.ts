@@ -23,6 +23,16 @@ export type AppRole = "admin" | "user";
 export type OrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
 export type StockStatus = "in_stock" | "low_stock" | "out_of_stock" | "unknown";
 
+export type SupplierCredentialRow = {
+  provider: string;
+  access_token: string; // cifrado
+  refresh_token: string | null; // cifrado
+  expires_at: string | null;
+  refresh_expires_at: string | null;
+  account: string | null;
+  updated_at: string;
+};
+
 export type ProductRow = {
   id: string;
   slug: string;
@@ -256,6 +266,7 @@ export type Database = {
       opportunity_findings: Table<OpportunityRow, "title" | "source">;
       store_settings: Table<StoreSettingRow, "key" | "value">;
       product_supplier_links: Table<ProductSupplierLinkRow, "product_id" | "supplier_id">;
+      supplier_credentials: Table<SupplierCredentialRow, "provider" | "access_token">;
     };
     Views: { [_ in never]: never };
     Functions: {
