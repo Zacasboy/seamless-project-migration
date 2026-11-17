@@ -15,7 +15,10 @@ type NavItem = { to: string; label: string; exact?: boolean; badge?: "checks" | 
 const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Decidir",
-    items: [{ to: "/admin", label: "Visão geral", exact: true, badge: "checks" }],
+    items: [
+      { to: "/admin", label: "Visão geral", exact: true, badge: "checks" },
+      { to: "/admin/agentes", label: "Agentes" },
+    ],
   },
   {
     group: "Vender",

@@ -25,6 +25,7 @@ import { Route as TermosRouteImport } from './routes/termos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminAgentesRouteImport } from './routes/_authenticated/admin.agentes'
 import { Route as AuthenticatedAdminCanaisRouteImport } from './routes/_authenticated/admin.canais'
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminColecoesRouteImport } from './routes/_authenticated/admin.colecoes'
@@ -38,6 +39,7 @@ import { Route as AuthenticatedAdminTrafegoRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminUtilizadoresRouteImport } from './routes/_authenticated/admin.utilizadores'
 import { Route as ApiAliexpressCallbackRouteImport } from './routes/api/aliexpress/callback'
 import { Route as ApiCronSyncStockRouteImport } from './routes/api/cron/sync-stock'
+import { Route as ApiCronAgentsAgentRouteImport } from './routes/api/cron/agents.$agent'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -118,6 +120,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminAgentesRoute =
+  AuthenticatedAdminAgentesRouteImport.update({
+    id: '/agentes',
+    path: '/agentes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCanaisRoute =
   AuthenticatedAdminCanaisRouteImport.update({
     id: '/canais',
@@ -193,6 +201,11 @@ const ApiCronSyncStockRoute = ApiCronSyncStockRouteImport.update({
   path: '/api/cron/sync-stock',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronAgentsAgentRoute = ApiCronAgentsAgentRouteImport.update({
+  id: '/api/cron/agents/$agent',
+  path: '/api/cron/agents/$agent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -209,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/agentes': typeof AuthenticatedAdminAgentesRoute
   '/admin/canais': typeof AuthenticatedAdminCanaisRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/colecoes': typeof AuthenticatedAdminColecoesRoute
@@ -223,6 +237,7 @@ export interface FileRoutesByFullPath {
   '/api/aliexpress/callback': typeof ApiAliexpressCallbackRoute
   '/api/cron/sync-stock': typeof ApiCronSyncStockRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/api/cron/agents/$agent': typeof ApiCronAgentsAgentRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -238,6 +253,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/agentes': typeof AuthenticatedAdminAgentesRoute
   '/admin/canais': typeof AuthenticatedAdminCanaisRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/colecoes': typeof AuthenticatedAdminColecoesRoute
@@ -252,6 +268,7 @@ export interface FileRoutesByTo {
   '/api/aliexpress/callback': typeof ApiAliexpressCallbackRoute
   '/api/cron/sync-stock': typeof ApiCronSyncStockRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/api/cron/agents/$agent': typeof ApiCronAgentsAgentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -270,6 +287,7 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/_authenticated/admin/agentes': typeof AuthenticatedAdminAgentesRoute
   '/_authenticated/admin/canais': typeof AuthenticatedAdminCanaisRoute
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/colecoes': typeof AuthenticatedAdminColecoesRoute
@@ -284,6 +302,7 @@ export interface FileRoutesById {
   '/api/aliexpress/callback': typeof ApiAliexpressCallbackRoute
   '/api/cron/sync-stock': typeof ApiCronSyncStockRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/api/cron/agents/$agent': typeof ApiCronAgentsAgentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -302,6 +321,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/admin'
     | '/produto/$slug'
+    | '/admin/agentes'
     | '/admin/canais'
     | '/admin/clientes'
     | '/admin/colecoes'
@@ -316,6 +336,7 @@ export interface FileRouteTypes {
     | '/api/aliexpress/callback'
     | '/api/cron/sync-stock'
     | '/admin/'
+    | '/api/cron/agents/$agent'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -331,6 +352,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/termos'
     | '/produto/$slug'
+    | '/admin/agentes'
     | '/admin/canais'
     | '/admin/clientes'
     | '/admin/colecoes'
@@ -345,6 +367,7 @@ export interface FileRouteTypes {
     | '/api/aliexpress/callback'
     | '/api/cron/sync-stock'
     | '/admin'
+    | '/api/cron/agents/$agent'
   id:
     | '__root__'
     | '/'
@@ -362,6 +385,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/_authenticated/admin'
     | '/produto/$slug'
+    | '/_authenticated/admin/agentes'
     | '/_authenticated/admin/canais'
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/colecoes'
@@ -376,6 +400,7 @@ export interface FileRouteTypes {
     | '/api/aliexpress/callback'
     | '/api/cron/sync-stock'
     | '/_authenticated/admin/'
+    | '/api/cron/agents/$agent'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -395,6 +420,7 @@ export interface RootRouteChildren {
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ApiAliexpressCallbackRoute: typeof ApiAliexpressCallbackRoute
   ApiCronSyncStockRoute: typeof ApiCronSyncStockRoute
+  ApiCronAgentsAgentRoute: typeof ApiCronAgentsAgentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -511,6 +537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/agentes': {
+      id: '/_authenticated/admin/agentes'
+      path: '/agentes'
+      fullPath: '/admin/agentes'
+      preLoaderRoute: typeof AuthenticatedAdminAgentesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/canais': {
       id: '/_authenticated/admin/canais'
       path: '/canais'
@@ -602,10 +635,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronSyncStockRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/agents/$agent': {
+      id: '/api/cron/agents/$agent'
+      path: '/api/cron/agents/$agent'
+      fullPath: '/api/cron/agents/$agent'
+      preLoaderRoute: typeof ApiCronAgentsAgentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAgentesRoute: typeof AuthenticatedAdminAgentesRoute
   AuthenticatedAdminCanaisRoute: typeof AuthenticatedAdminCanaisRoute
   AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
   AuthenticatedAdminColecoesRoute: typeof AuthenticatedAdminColecoesRoute
@@ -621,6 +662,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAgentesRoute: AuthenticatedAdminAgentesRoute,
   AuthenticatedAdminCanaisRoute: AuthenticatedAdminCanaisRoute,
   AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
   AuthenticatedAdminColecoesRoute: AuthenticatedAdminColecoesRoute,
@@ -666,6 +708,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutoSlugRoute: ProdutoSlugRoute,
   ApiAliexpressCallbackRoute: ApiAliexpressCallbackRoute,
   ApiCronSyncStockRoute: ApiCronSyncStockRoute,
+  ApiCronAgentsAgentRoute: ApiCronAgentsAgentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

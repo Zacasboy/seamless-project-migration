@@ -72,3 +72,14 @@ Depois: `VERCEL_CRON_SCHEDULE` = `*/15 * * * *` e novo deploy. Projeto, domínio
 NITRO_PRESET=vercel bun run build
 cat .vercel/output/config.json   # deve listar o cron
 ```
+
+
+## Agentes do painel
+
+Os quatro agentes (Catálogo e SEO, Marca, Conteúdo, Concorrência) estão em **Painel → Agentes**.
+
+- Variáveis na Vercel (Production, Sensitive): `ANTHROPIC_API_KEY` (console.anthropic.com → API Keys), `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`. Opcional: `ANTHROPIC_MODEL`.
+- Base de dados: `supabase/migrations/20261117020000_agents.sql`.
+- Agendamento: a Vercel chama `/api/cron/agents/<agente>` uma vez por dia; a frequência escolhida no painel decide se o agente trabalha nesse dia.
+- Cada execução dura até ~4 minutos (`maxDuration` 300 s) e faz no máximo 30 alterações. Todas ficam no diário e podem ser desfeitas.
+- Os agentes nunca alteram preços, não criam nem apagam produtos (arquivam) e a mudança de tema é sempre proposta.

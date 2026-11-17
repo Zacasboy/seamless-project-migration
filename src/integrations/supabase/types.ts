@@ -23,6 +23,82 @@ export type AppRole = "admin" | "user";
 export type OrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
 export type StockStatus = "in_stock" | "low_stock" | "out_of_stock" | "unknown";
 
+export type AgentSettingsRow = {
+  agent: string;
+  enabled: boolean;
+  autonomy: "auto" | "propor";
+  frequency: "daily" | "weekly" | "manual";
+  instructions: string;
+  updated_at: string;
+  updated_by: string | null;
+};
+export type AgentRunRow = {
+  id: string;
+  agent: string;
+  trigger: "manual" | "cron";
+  status: "running" | "done" | "error";
+  summary: string | null;
+  report_md: string | null;
+  error: string | null;
+  sources: Json;
+  input_tokens: number;
+  output_tokens: number;
+  started_by: string | null;
+  started_at: string;
+  finished_at: string | null;
+};
+export type AgentActionRow = {
+  id: string;
+  run_id: string | null;
+  agent: string;
+  op: "create" | "update" | "delete";
+  entity: "products" | "collections" | "marketing_content" | "agent_plans" | "agent_memory" | "store_settings";
+  entity_id: string | null;
+  label: string | null;
+  before: { [key: string]: Json | undefined } | null;
+  after: { [key: string]: Json | undefined } | null;
+  reason: string | null;
+  status: "applied" | "proposed" | "undone" | "rejected" | "failed";
+  error: string | null;
+  created_at: string;
+  decided_at: string | null;
+  decided_by: string | null;
+};
+export type MarketingContentRow = {
+  id: string;
+  kind: "post" | "ad" | "email" | "blog";
+  channel: string;
+  title: string;
+  body: string;
+  hashtags: string[];
+  cta: string | null;
+  audience: string | null;
+  product_ids: string[];
+  budget_eur: number | null;
+  expected_ctr: number | null;
+  expected_cvr: number | null;
+  success_probability: number | null;
+  rationale: string | null;
+  status: "draft" | "approved" | "published" | "archived";
+  scheduled_for: string | null;
+  agent: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type AgentPlanRow = {
+  id: string;
+  agent: string;
+  kind: "concorrencia" | "marca" | "seo" | "conteudo";
+  title: string;
+  body_md: string;
+  actions: Json;
+  sources: Json;
+  status: "open" | "in_progress" | "done" | "archived";
+  created_at: string;
+  updated_at: string;
+};
+export type AgentMemoryRow = { key: string; value: Json; updated_at: string; updated_by_agent: string | null };
+
 export type SupplierCredentialRow = {
   provider: string;
   access_token: string; // cifrado
@@ -267,6 +343,12 @@ export type Database = {
       store_settings: Table<StoreSettingRow, "key" | "value">;
       product_supplier_links: Table<ProductSupplierLinkRow, "product_id" | "supplier_id">;
       supplier_credentials: Table<SupplierCredentialRow, "provider" | "access_token">;
+      agent_settings: Table<AgentSettingsRow, "agent">;
+      agent_runs: Table<AgentRunRow, "agent" | "trigger">;
+      agent_actions: Table<AgentActionRow, "agent" | "op" | "entity" | "status">;
+      marketing_content: Table<MarketingContentRow, "kind" | "channel" | "title">;
+      agent_plans: Table<AgentPlanRow, "agent" | "kind" | "title">;
+      agent_memory: Table<AgentMemoryRow, "key" | "value">;
     };
     Views: { [_ in never]: never };
     Functions: {
