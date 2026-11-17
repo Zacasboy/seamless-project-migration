@@ -1,7 +1,7 @@
 // Execução de um agente: ciclo de ferramentas com limite de tempo, diário e relatório.
 import { AGENTS, type AgentKey } from "@/lib/agents";
 import { callClaude, type Block, type Message } from "./claude";
-import { AGENT_PROMPTS, COMMON_PROMPT, WEB_SEARCHES } from "./definitions";
+import { AGENT_PROMPTS, COMMON_PROMPT, NEEDS_WEB, WEB_SEARCHES, webSearchEnabled } from "./definitions";
 import type { Db } from "./journal";
 import { MAX_WRITES, runTool, toolDefinitions, type Ctx } from "./tools";
 
@@ -35,6 +35,13 @@ async function kickoff(db: Db, agent: AgentKey, instructions: string) {
     .order("decided_at", { ascending: false })
     .limit(8);
   const today = new Date().toLocaleDateString("pt-PT", { dateStyle: "full", timeZone: "Europe/Lisbon" });
+  const { loadRulesConfig } = await import("./rules");
+  const lang = (await loadRulesConfig(db)).product_language;
+  const langRule = {
+    manter: "manter (melhora na língua em que o texto já está, sem traduzir)",
+    pt: "pt (português europeu)",
+    en: "en (inglês)",
+  }[lang];
   return [
     `Hoje é ${today}. Começa a tua execução como ${AGENTS[agent].name}.`,
     instructions.trim() && `Instruções do administrador (prioritárias):\n${instructions.trim()}`,
@@ -45,6 +52,7 @@ async function kickoff(db: Db, agent: AgentKey, instructions: string) {
     undone?.length
       ? `O administrador desfez ou rejeitou estas alterações tuas; aprende com isso e não as repitas:\n${undone.map((u) => `- ${u.label} (motivo dado: ${u.reason})`).join("\n")}`
       : "",
+    `Língua dos nomes e descrições de produtos: ${langRule}.`,
     `Podes fazer no máximo ${MAX_WRITES} alterações.`,
   ]
     .filter(Boolean)
@@ -67,6 +75,8 @@ export async function runAgent(
   agent: AgentKey,
   opts: { trigger: "manual" | "cron"; userId?: string | null },
 ): Promise<RunResult> {
+  if (NEEDS_WEB.includes(agent) && !webSearchEnabled())
+    throw new Error(`${AGENTS[agent].name} precisa da pesquisa na web, que está desligada (AGENTS_WEB_SEARCH).`);
   const { data: settings } = await db.from("agent_settings").select("*").eq("agent", agent).single();
   if (!settings) throw new Error("Definições do agente em falta.");
 
@@ -95,7 +105,7 @@ export async function runAgent(
   const sources = new Map<string, string>();
 
   const tools: unknown[] = toolDefinitions(agent);
-  if (WEB_SEARCHES[agent] > 0)
+  if (webSearchEnabled() && WEB_SEARCHES[agent] > 0)
     tools.push({
       type: "web_search_20250305",
       name: "web_search",

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { euro } from "@/lib/cart";
 import { SupplierConnections, SupplierLinkImport } from "@/components/admin/SupplierImport";
+import { runRulesNow } from "@/lib/agents.functions";
 import {
   FIELD_LABELS,
   STORE_CATEGORIES,
@@ -105,15 +106,22 @@ function Page() {
         toSave.push(toProductRow(d, opts, taken));
       }
       let saved = 0;
+      const ids: string[] = [];
       for (let i = 0; i < toSave.length; i += 50) {
         const chunk = toSave.slice(i, i + 50);
-        const { error } = await supabase.from("products").insert(chunk);
+        const { data: inserted, error } = await supabase.from("products").insert(chunk).select("id");
         if (error) throw new Error(`${error.message} (depois de ${saved} gravados)`);
+        ids.push(...(inserted ?? []).map((r) => r.id));
         saved += chunk.length;
       }
       setResult({ saved, skipped });
       setRows([]); // evita importar o mesmo ficheiro duas vezes
       toast.success(`${saved} produtos importados`);
+      // Rotinas automáticas (sem IA) nos produtos novos: limpeza, categoria, SEO.
+      for (let i = 0; i < ids.length; i += 500)
+        await runRulesNow({ data: { productIds: ids.slice(i, i + 500) } })
+          .then((r) => r.summary && toast.message(`Rotinas automáticas: ${r.summary}`))
+          .catch(() => toast.warning("Produtos importados, mas as rotinas automáticas não correram. Pode corrê-las em Agentes."));
       void qc.invalidateQueries();
     } catch (e) {
       toast.error(`A importação parou: ${(e as Error).message}`);

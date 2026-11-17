@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi } from "vitest";
-import { isDue } from "@/lib/agents";
+import { isDue, type AgentKey } from "@/lib/agents";
 import { applyOperation, pick, undoAction } from "./journal";
 import { MAX_WRITES, runTool, toolDefinitions, type Ctx } from "./tools";
 
@@ -96,7 +96,7 @@ describe("ferramentas", () => {
     ({ db: fakeDb(tables), agent, runId: "r1", autonomy, writes: 0, siteUrl: "https://x" }) as Ctx;
 
   it("cada agente só vê as suas ferramentas", () => {
-    const names = (a: Ctx["agent"]) => toolDefinitions(a).map((t) => t.name);
+    const names = (a: AgentKey) => toolDefinitions(a).map((t) => t.name);
     expect(names("conteudo")).toContain("criar_conteudo");
     expect(names("conteudo")).not.toContain("atualizar_produto");
     expect(names("catalogo")).toContain("atualizar_produto");
@@ -107,6 +107,13 @@ describe("ferramentas", () => {
   it("valida os dados e recusa preço", async () => {
     const c = ctx("catalogo", "auto", { products: [{ id: "00000000-0000-4000-8000-000000000001", title: "X" }] });
     await expect(runTool(c, "atualizar_produto", { id: "00000000-0000-4000-8000-000000000001", campos: { price: 1 }, motivo: "baixar preço" })).rejects.toThrow(/Dados inválidos/);
+  });
+
+  it("recusa nomes com sexo, tamanho ou fabricante", async () => {
+    const id = "00000000-0000-4000-8000-000000000001";
+    const c = ctx("catalogo", "auto", { products: [{ id, title: "X" }], agent_actions: [] });
+    await expect(runTool(c, "atualizar_produto", { id, campos: { title: "Men's loafers size 42" }, motivo: "nome melhor" })).rejects.toThrow(/Nome recusado/);
+    await expect(runTool(c, "atualizar_produto", { id, campos: { title: "Suede loafers" }, motivo: "nome melhor" })).resolves.toMatchObject({ estado: "aplicado" });
   });
 
   it("no modo propor guarda proposta sem mudar o produto", async () => {
@@ -178,8 +185,33 @@ describe("execução de um agente", () => {
     expect(tables["products"]![0].price).toBe(20);
     expect(tables["agent_actions"]![0]).toMatchObject({ status: "applied", entity: "products" });
     expect(tables["agent_runs"]![0]).toMatchObject({ status: "done", input_tokens: 150 });
-    expect(bodies[0].tools.some((t: any) => t.type === "web_search_20250305")).toBe(true);
+    expect(bodies[0].tools.some((t: any) => t.type === "web_search_20250305")).toBe(false); // desligada por omissão
     expect(bodies[1].messages.at(-1).content[0]).toMatchObject({ type: "tool_result", tool_use_id: "t1" });
+  });
+});
+
+describe("pesquisa na web", () => {
+  it("fica desligada por omissão e o agente de concorrência não arranca", async () => {
+    delete process.env["AGENTS_WEB_SEARCH"];
+    const { runAgent } = await import("./runtime");
+    await expect(runAgent(fakeDb({}), "concorrencia", { trigger: "manual" })).rejects.toThrow(/pesquisa na web/);
+  });
+
+  it("liga com AGENTS_WEB_SEARCH=on", async () => {
+    process.env["AGENTS_WEB_SEARCH"] = "on";
+    process.env["ANTHROPIC_API_KEY"] = "test";
+    const bodies: any[] = [];
+    vi.stubGlobal("fetch", async (_u: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      return new Response(JSON.stringify({ stop_reason: "end_turn", content: [{ type: "text", text: "Resumo: ok" }], usage: { input_tokens: 1, output_tokens: 1 } }));
+    });
+    const { runAgent } = await import("./runtime");
+    const tables: Tables = { agent_settings: [{ id: "concorrencia", agent: "concorrencia", enabled: true, autonomy: "auto", frequency: "weekly", instructions: "" }], agent_runs: [], agent_actions: [] };
+    const r = await runAgent(fakeDb(tables), "concorrencia", { trigger: "manual" });
+    vi.unstubAllGlobals();
+    delete process.env["AGENTS_WEB_SEARCH"];
+    expect(r.status).toBe("done");
+    expect(bodies[0].tools.find((t: any) => t.type === "web_search_20250305")).toMatchObject({ max_uses: 12 });
   });
 });
 

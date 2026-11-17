@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AGENT_KEYS } from "@/lib/agents";
+import { AGENT_KEYS, RULES, type RuleKey } from "@/lib/agents";
 
 // Funções do painel para os agentes. As execuções e as decisões sobre alterações correm
 // no servidor com a service role, depois de confirmar que quem pede é administrador.
@@ -28,6 +28,7 @@ export const getAgentsOverview = createServerFn({ method: "GET" })
     const db = context.supabase;
     await assertAdmin(db, context.userId);
     const { claudeConfigured, agentModel } = await import("@/server/agents/claude");
+    const { webSearchEnabled } = await import("@/server/agents/definitions");
     const { data: settings, error } = await db.from("agent_settings").select("*");
     if (error) throw new Error("Falta aplicar a atualização da base de dados dos agentes (20261117020000_agents).");
     const { data: runs } = await db
@@ -36,11 +37,20 @@ export const getAgentsOverview = createServerFn({ method: "GET" })
       .order("started_at", { ascending: false })
       .limit(40);
     const { data: pending } = await db.from("agent_actions").select("agent").eq("status", "proposed");
+    const rulesSettings = settings?.find((x) => x.agent === "regras") ?? null;
+    const rulesRuns = (runs ?? []).filter((r) => r.agent === "regras");
     return {
+      rules: {
+        settings: rulesSettings,
+        lastRun: rulesRuns[0] ?? null,
+        runs: rulesRuns.slice(0, 6),
+        pending: (pending ?? []).filter((p) => p.agent === "regras").length,
+      },
       ready: {
         apiKey: claudeConfigured(),
         serviceRole: !!process.env["SUPABASE_SERVICE_ROLE_KEY"]?.trim(),
         model: agentModel(),
+        webSearch: webSearchEnabled(),
       },
       agents: AGENT_KEYS.map((key) => {
         const s = settings?.find((x) => x.agent === key);
@@ -219,6 +229,55 @@ export const updatePlanStatus = createServerFn({ method: "POST" })
       patch.actions = actions as PlanRow["actions"];
     }
     const { error } = await db.from("agent_plans").update(patch).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// ---------------- Rotinas automáticas (sem IA) ----------------
+
+export const runRulesNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z.object({ productIds: z.array(z.string().uuid()).max(500).optional() }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { runRules } = await import("@/server/agents/rules");
+    const r = await runRules(await adminDb(), {
+      trigger: data.productIds?.length ? "import" : "manual",
+      userId: context.userId,
+      ...(data.productIds?.length ? { productIds: data.productIds } : {}),
+    });
+    if ("skipped" in r) return { runId: null, status: "done" as const, summary: "Rotinas desligadas." };
+    return r;
+  });
+
+const ruleKeys = Object.keys(RULES) as [RuleKey, ...RuleKey[]];
+
+export const updateRulesSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        enabled: z.boolean(),
+        autonomy: z.enum(["auto", "propor"]),
+        rules: z.record(z.enum(ruleKeys), z.boolean()),
+        product_language: z.enum(["manter", "pt", "en"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("agent_settings")
+      .update({
+        enabled: data.enabled,
+        autonomy: data.autonomy,
+        config: { rules: data.rules, product_language: data.product_language },
+        updated_at: new Date().toISOString(),
+        updated_by: context.userId,
+      })
+      .eq("agent", "regras");
     if (error) throw new Error(error.message);
     return { ok: true };
   });

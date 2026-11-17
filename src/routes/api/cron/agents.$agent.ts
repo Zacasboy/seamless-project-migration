@@ -6,9 +6,22 @@ import { AGENT_KEYS, isDue, type AgentKey } from "@/lib/agents";
 async function run(request: Request, agent: string) {
   const { cronAuthorized } = await import("@/server/cron-auth");
   if (!cronAuthorized(request)) return new Response("Não autorizado", { status: 401 });
+  if (agent === "regras") {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { runRules } = await import("@/server/agents/rules");
+    try {
+      return Response.json(await runRules(supabaseAdmin as unknown as import("@/server/agents/journal").Db, { trigger: "cron" }));
+    } catch (e) {
+      console.error("[cron regras]", (e as Error).message);
+      return Response.json({ error: (e as Error).message }, { status: 500 });
+    }
+  }
   if (!(AGENT_KEYS as readonly string[]).includes(agent)) return new Response("Agente desconhecido", { status: 404 });
   const { claudeConfigured } = await import("@/server/agents/claude");
   if (!claudeConfigured()) return Response.json({ skipped: "Falta ANTHROPIC_API_KEY" });
+  const { NEEDS_WEB, webSearchEnabled } = await import("@/server/agents/definitions");
+  if (NEEDS_WEB.includes(agent as AgentKey) && !webSearchEnabled())
+    return Response.json({ skipped: "Pesquisa na web desligada" });
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db = supabaseAdmin as unknown as import("@/server/agents/journal").Db;
   const { data: s } = await db.from("agent_settings").select("enabled, frequency").eq("agent", agent).maybeSingle();

@@ -76,10 +76,14 @@ cat .vercel/output/config.json   # deve listar o cron
 
 ## Agentes do painel
 
-Os quatro agentes (Catálogo e SEO, Marca, Conteúdo, Concorrência) estão em **Painel → Agentes**.
+Em **Painel → Agentes** há duas camadas:
+
+- **Rotinas automáticas (sem IA, sem custo):** limpam nomes e descrições, arrumam cores e tamanhos, preenchem categoria, género, tipo, meta title/description e texto alternativo, e arquivam coleções vazias e rascunhos antigos. Correm todos os dias (`/api/cron/agents/regras`) e logo a seguir a cada importação. Não traduzem nomes nem descrições (escolha da língua nas definições) e não inventam dados. Só precisam de `SUPABASE_SERVICE_ROLE_KEY`.
+- **Agentes de IA** (Catálogo e SEO, Marca, Conteúdo, Concorrência): escrevem, revêem e analisam. Ficam à espera até haver `ANTHROPIC_API_KEY`.
 
 - Variáveis na Vercel (Production, Sensitive): `ANTHROPIC_API_KEY` (console.anthropic.com → API Keys), `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`. Opcional: `ANTHROPIC_MODEL`.
 - Base de dados: `supabase/migrations/20261117020000_agents.sql`.
 - Agendamento: a Vercel chama `/api/cron/agents/<agente>` uma vez por dia; a frequência escolhida no painel decide se o agente trabalha nesse dia.
 - Cada execução dura até ~4 minutos (`maxDuration` 300 s) e faz no máximo 30 alterações. Todas ficam no diário e podem ser desfeitas.
+- Pesquisa na web: desligada por omissão. Para ligar, `AGENTS_WEB_SEARCH=on` na Vercel e redeploy (e ativar a pesquisa na web na Console da Anthropic, se pedido). Sem ela, o agente de Concorrência fica parado e os outros trabalham só com os dados da loja.
 - Os agentes nunca alteram preços, não criam nem apagam produtos (arquivam) e a mudança de tema é sempre proposta.

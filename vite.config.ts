@@ -57,6 +57,8 @@ export default defineConfig(({ command, mode }) => {
                       schedule: process.env["VERCEL_CRON_SCHEDULE"] || "0 5 * * *",
                     },
                     // Agentes: um pedido diário cada; a frequência no painel decide se trabalham.
+                    // Rotinas sem IA: logo a seguir à sincronização de stock.
+                    { path: "/api/cron/agents/regras", schedule: "37 5 * * *" },
                     { path: "/api/cron/agents/catalogo", schedule: "17 6 * * *" },
                     { path: "/api/cron/agents/concorrencia", schedule: "17 7 * * *" },
                     { path: "/api/cron/agents/marca", schedule: "17 8 * * *" },

@@ -3,12 +3,14 @@ import { z } from "zod/v4";
 import type { AgentKey } from "@/lib/agents";
 import { STORE_CATEGORIES } from "@/lib/import-products";
 import { STOREFRONT, applyOperation, pick, snapshot, type Db, type Operation } from "./journal";
+import { titleProblems } from "./product-text";
 
 export const MAX_WRITES = 30;
 
 export type Ctx = {
   db: Db;
-  agent: AgentKey;
+  agent: AgentKey | "regras";
+  maxWrites?: number;
   runId: string;
   autonomy: "auto" | "propor";
   writes: number;
@@ -38,9 +40,9 @@ function tool<S extends z.ZodType>(t: {
 }
 
 /** Escreve através do diário; no modo "propor" (ou no tema) guarda a proposta sem aplicar. */
-async function write(ctx: Ctx, o: Operation) {
-  if (++ctx.writes > MAX_WRITES)
-    throw new Error(`Limite de ${MAX_WRITES} alterações por execução atingido. Termina com o relatório.`);
+export async function write(ctx: Ctx, o: Operation) {
+  const max = ctx.maxWrites ?? MAX_WRITES;
+  if (++ctx.writes > max) throw new Error(`Limite de ${max} alterações por execução atingido. Termina com o relatório.`);
   const propose =
     o.entity === "store_settings" || (ctx.autonomy === "propor" && STOREFRONT.has(o.entity));
   const base = {
@@ -328,13 +330,13 @@ const verConteudos = tool({
 
 const productFields = z
   .object({
-    title: z.string().min(3).max(90).optional(),
+    title: z.string().min(3).max(60).optional().describe("Só tipo de produto + material; sem tamanho, sexo, fabricante ou estilo"),
     description: z.string().min(40).max(4000).optional().describe("Texto simples com parágrafos separados por linha em branco"),
     category: z.enum(STORE_CATEGORIES).optional(),
     gender: z.enum(["mulher", "homem", "unisex"]).optional(),
     garment_type: z.string().max(60).optional(),
     meta_title: z.string().min(10).max(70).optional(),
-    meta_description: z.string().min(50).max(170).optional(),
+    meta_description: z.string().min(50).max(170).optional().describe("Descrição SEO 140–160 caracteres, na língua do produto"),
     image_alt: z.string().min(5).max(200).optional(),
     size_options: z.array(z.string().max(20)).max(20).optional(),
     color_options: z.array(z.string().max(40)).max(20).optional(),
@@ -349,6 +351,13 @@ const atualizarProduto = tool({
   async run(ctx, i) {
     const { data: p } = await ctx.db.from("products").select("title").eq("id", i.id).maybeSingle();
     if (!p) throw new Error("Produto não encontrado.");
+    if (i.campos.title) {
+      const bad = titleProblems(i.campos.title);
+      if (bad.length)
+        throw new Error(
+          `Nome recusado (${bad.join(", ")}). O nome tem só o tipo de produto e o material, ex. "Mocassins de camurça" ou "Leather loafers".`,
+        );
+    }
     return write(ctx, { entity: "products", op: "update", id: i.id, values: i.campos, label: `${p.title}: ${Object.keys(i.campos).join(", ")}`, reason: i.motivo });
   },
 });
@@ -599,6 +608,7 @@ export function toolDefinitions(agent: AgentKey) {
 }
 
 export async function runTool(ctx: Ctx, name: string, input: unknown) {
+  if (ctx.agent === "regras") throw new Error("As rotinas não usam ferramentas.");
   const t = toolsFor(ctx.agent).find((x) => x.name === name);
   if (!t) throw new Error(`Ferramenta desconhecida: ${name}`);
   const parsed = t.schema.safeParse(input ?? {});

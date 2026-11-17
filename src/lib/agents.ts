@@ -1,4 +1,31 @@
 // Agentes do painel (partilhado entre browser e servidor; sem segredos).
+
+// ---- Rotinas automáticas sem IA ----
+export type ProductLanguage = "manter" | "pt" | "en";
+
+export const RULES = {
+  titulos: { label: "Nomes: tipo de produto + material", desc: "Refaz nomes de fornecedor só com o tipo (mocassins, loafers, mala tiracolo…) e o material (couro, camurça, lã…), sem tamanho, sexo nem fabricante, na língua do produto.", default: true },
+  descricoes: { label: "Limpar descrições", desc: "Tira restos de HTML e de editores, ligações, nomes de fornecedores; separa a ficha técnica em linhas.", default: true },
+  opcoes: { label: "Arrumar cores e tamanhos", desc: "Remove repetidos, uniformiza a escrita e ordena os tamanhos.", default: true },
+  classificacao: { label: "Categoria, género e tipo", desc: "Preenche categoria, género e tipo de peça pelo nome quando faltam ou estão errados.", default: true },
+  seo: { label: "Título e descrição SEO", desc: "Preenche o meta title e a descrição SEO (tipo, material, para quem, tamanhos, cores) só com dados reais.", default: true },
+  alt: { label: "Texto alternativo das fotos", desc: "Preenche o texto alternativo vazio ou igual ao nome antigo com o nome e a cor.", default: true },
+  sem_foto: { label: "Retirar produtos sem fotografia", desc: "Despublica produtos reais sem fotografia.", default: false },
+  esgotados: { label: "Retirar produtos esgotados", desc: "Despublica produtos que o fornecedor dá como esgotados.", default: false },
+  colecoes: { label: "Arquivar coleções vazias", desc: "Arquiva coleções publicadas com menos de 2 produtos publicados.", default: true },
+  conteudos: { label: "Arquivar rascunhos antigos", desc: "Arquiva publicações e anúncios em rascunho com mais de 30 dias ou de produtos retirados.", default: true },
+} as const;
+export type RuleKey = keyof typeof RULES;
+
+export type RulesConfig = { rules: Partial<Record<RuleKey, boolean>>; product_language: ProductLanguage };
+
+export const LANGUAGE_LABEL: Record<ProductLanguage, string> = {
+  manter: "Manter a língua do fornecedor",
+  pt: "Português",
+  en: "Inglês",
+};
+
+// ---- Agentes de IA ----
 export const AGENT_KEYS = ["catalogo", "marca", "conteudo", "concorrencia"] as const;
 export type AgentKey = (typeof AGENT_KEYS)[number];
 

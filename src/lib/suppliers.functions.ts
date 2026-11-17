@@ -214,6 +214,20 @@ export const importSupplierProduct = createServerFn({ method: "POST" })
       await db.from("products").delete().eq("id", product.id);
       throw new Error(`Não foi possível ligar o produto ao fornecedor: ${linkError.message}`);
     }
+    // Rotinas automáticas no produto acabado de importar (sem IA; falhas não bloqueiam a importação).
+    if (process.env["SUPABASE_SERVICE_ROLE_KEY"]?.trim()) {
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { runRules } = await import("@/server/agents/rules");
+        await runRules(supabaseAdmin as unknown as import("@/server/agents/journal").Db, {
+          trigger: "import",
+          userId: context.userId,
+          productIds: [product.id],
+        });
+      } catch (e) {
+        console.error("[regras após importação]", (e as Error).message);
+      }
+    }
     return { slug: product.slug };
   });
 

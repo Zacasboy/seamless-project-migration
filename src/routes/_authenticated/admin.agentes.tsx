@@ -13,6 +13,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { euro } from "@/lib/cart";
 import {
   AGENTS,
+  LANGUAGE_LABEL,
+  RULES,
+  type ProductLanguage,
+  type RuleKey,
   AUTONOMY_LABEL,
   CHANNEL_LABEL,
   ENTITY_LABEL,
@@ -27,8 +31,10 @@ import {
   listAgentPlans,
   listMarketingContent,
   runAgentNow,
+  runRulesNow,
   setContentStatus,
   updateAgentSettings,
+  updateRulesSettings,
   updatePlanStatus,
 } from "@/lib/agents.functions";
 
@@ -56,7 +62,7 @@ function Page() {
     <>
       <AdminHeader
         title="Agentes"
-        intro="Quatro agentes trabalham sozinhos no catálogo, na marca, no conteúdo e na concorrência. Cada alteração fica registada e pode ser desfeita."
+        intro="As rotinas automáticas arrumam o catálogo sem IA e sem custos. Os agentes de IA escrevem, revêem e analisam quando a chave da Anthropic estiver ligada. Cada alteração fica registada e pode ser desfeita."
       />
       {overview.isError && (
         <Panel>
@@ -65,11 +71,16 @@ function Page() {
           </p>
         </Panel>
       )}
+      {pendingTotal + (overview.data?.rules.pending ?? 0) > 0 && <Proposals />}
+      {overview.data && <RulesPanel rules={overview.data.rules} onOpenRun={setOpenRun} />}
+      <div>
+        <h2 className="text-2xl">Agentes de IA</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Escrevem, revêem e analisam. Precisam da chave da Anthropic.</p>
+      </div>
       {overview.data && <Readiness ready={overview.data.ready} />}
-      {pendingTotal > 0 && <Proposals />}
       <div className="grid gap-4 lg:grid-cols-2">
         {(overview.data?.agents ?? []).map((a) => (
-          <AgentCard key={a.key} info={a} onOpenRun={setOpenRun} />
+          <AgentCard key={a.key} info={a} onOpenRun={setOpenRun} webSearch={overview.data!.ready.webSearch} />
         ))}
         {overview.isLoading &&
           [0, 1, 2, 3].map((i) => <div key={i} className="h-64 animate-pulse rounded-sm bg-muted" aria-busy="true" />)}
@@ -104,13 +115,164 @@ function Readiness({ ready }: { ready: Overview["ready"] }) {
   const missing = [!ready.apiKey && "ANTHROPIC_API_KEY", !ready.serviceRole && "SUPABASE_SERVICE_ROLE_KEY"].filter(Boolean);
   return (
     <div role="status" className="rounded-sm border border-[#E9D3AE] bg-[#FBF1E1] px-4 py-3 text-sm text-[#5A3A08]">
-      <b>Os agentes ainda não podem trabalhar.</b> Falta definir na Vercel (Production, Sensitive): {missing.join(" e ")}. Depois faça
-      redeploy.
+      <b>Os agentes de IA estão à espera.</b> Falta definir na Vercel (Production, Sensitive): {missing.join(" e ")}. Depois faça
+      redeploy. As rotinas automáticas não precisam da chave da Anthropic.
     </div>
   );
 }
 
-function AgentCard({ info, onOpenRun }: { info: AgentInfo; onOpenRun: (id: string) => void }) {
+function RulesPanel({ rules, onOpenRun }: { rules: Overview["rules"]; onOpenRun: (id: string) => void }) {
+  const qc = useQueryClient();
+  const s = rules.settings;
+  const cfg = (s?.config ?? {}) as { rules?: Partial<Record<RuleKey, boolean>>; product_language?: ProductLanguage };
+  const initial = () => ({
+    enabled: s?.enabled ?? true,
+    autonomy: s?.autonomy ?? "auto",
+    product_language: cfg.product_language ?? "manter",
+    rules: Object.fromEntries(
+      (Object.keys(RULES) as RuleKey[]).map((k) => [k, cfg.rules?.[k] ?? RULES[k].default]),
+    ) as Record<RuleKey, boolean>,
+  });
+  const [form, setForm] = useState(initial);
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (!dirty) setForm(initial());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s?.updated_at]);
+  const edit = (f: typeof form) => {
+    setForm(f);
+    setDirty(true);
+  };
+  const run = useMutation({
+    mutationFn: () => runRulesNow({ data: {} }),
+    onSuccess: (r) => {
+      (r.status === "done" ? toast.success : toast.error)(`Rotinas: ${r.summary}`);
+      if (r.runId) onOpenRun(r.runId);
+    },
+    onError: (e: Error) => toast.error(e.message),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["admin"] }),
+  });
+  const save = useMutation({
+    mutationFn: () => updateRulesSettings({ data: form }),
+    onSuccess: () => {
+      toast.success("Rotinas guardadas.");
+      setDirty(false);
+      void qc.invalidateQueries({ queryKey: ["admin", "agents"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const last = rules.lastRun;
+  if (!s)
+    return (
+      <Panel>
+        <p role="alert" className="text-sm text-destructive">
+          Falta aplicar a atualização da base de dados dos agentes.
+        </p>
+      </Panel>
+    );
+  return (
+    <Panel className="p-0">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b p-5">
+        <div className="min-w-0">
+          <h2 className="text-xl">Rotinas automáticas</h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Regras fixas, sem IA e sem custo: limpam e arrumam o catálogo todos os dias e logo depois de cada importação.
+            Não escrevem textos novos nem inventam dados.
+          </p>
+          <p className="mt-2 text-sm">
+            {last ? (
+              <button className="text-left underline-offset-4 hover:underline" onClick={() => onOpenRun(last.id)}>
+                Última vez {when(last.started_at)}: {last.status === "error" ? last.error : last.summary}
+              </button>
+            ) : (
+              "Ainda não correram."
+            )}
+          </p>
+        </div>
+        <Button onClick={() => run.mutate()} disabled={run.isPending}>
+          {run.isPending ? "A correr…" : "Correr agora"}
+        </Button>
+      </div>
+      <form
+        className="grid gap-5 p-5 text-sm"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate();
+        }}
+      >
+        <fieldset className="grid gap-2 sm:grid-cols-2">
+          <legend className="mb-2 font-semibold">O que fazem</legend>
+          {(Object.keys(RULES) as RuleKey[]).map((k) => (
+            <label key={k} className="flex items-start gap-3 rounded-sm border p-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4"
+                checked={form.rules[k]}
+                onChange={(e) => edit({ ...form, rules: { ...form.rules, [k]: e.target.checked } })}
+              />
+              <span>
+                <span className="font-medium">{RULES[k].label}</span>
+                <span className="block text-muted-foreground">{RULES[k].desc}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-1">
+            <Label htmlFor="rules-lang">Língua dos nomes e descrições</Label>
+            <select
+              id="rules-lang"
+              className="h-10 border bg-card px-3"
+              value={form.product_language}
+              onChange={(e) => edit({ ...form, product_language: e.target.value as ProductLanguage })}
+            >
+              {(Object.keys(LANGUAGE_LABEL) as ProductLanguage[]).map((k) => (
+                <option key={k} value={k}>
+                  {LANGUAGE_LABEL[k]}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs text-muted-foreground">Vale também para o agente de Catálogo. As rotinas só traduzem nomes de cores.</span>
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="rules-mode">Alterações</Label>
+            <select
+              id="rules-mode"
+              className="h-10 border bg-card px-3"
+              value={form.autonomy}
+              onChange={(e) => edit({ ...form, autonomy: e.target.value as "auto" | "propor" })}
+            >
+              {Object.entries(AUTONOMY_LABEL).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-3 self-end pb-2">
+            <Switch id="rules-on" checked={form.enabled} onCheckedChange={(v) => edit({ ...form, enabled: v })} />
+            <Label htmlFor="rules-on">Correr todos os dias e após importar</Label>
+          </div>
+        </div>
+        <div>
+          <Button type="submit" variant="outline" disabled={!dirty || save.isPending}>
+            {save.isPending ? "A guardar…" : "Guardar rotinas"}
+          </Button>
+        </div>
+      </form>
+    </Panel>
+  );
+}
+
+function AgentCard({
+  info,
+  onOpenRun,
+  webSearch,
+}: {
+  info: AgentInfo;
+  onOpenRun: (id: string) => void;
+  webSearch: boolean;
+}) {
   const qc = useQueryClient();
   const meta = AGENTS[info.key as AgentKey];
   const [editing, setEditing] = useState(false);
@@ -127,6 +289,7 @@ function AgentCard({ info, onOpenRun }: { info: AgentInfo; onOpenRun: (id: strin
   const last = info.lastRun;
   const running = run.isPending || last?.status === "running";
   const s = info.settings;
+  const needsWeb = info.key === "concorrencia" && !webSearch;
 
   return (
     <Panel className="flex flex-col gap-4">
@@ -135,8 +298,8 @@ function AgentCard({ info, onOpenRun }: { info: AgentInfo; onOpenRun: (id: strin
           <h2 className="text-xl">{meta.name}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{meta.role}</p>
         </div>
-        <StatusPill tone={!s?.enabled ? "none" : running ? "info" : last?.status === "error" ? "fail" : "pass"}>
-          {!s?.enabled ? "Desligado" : running ? "A trabalhar…" : last?.status === "error" ? "Última falhou" : "Ativo"}
+        <StatusPill tone={needsWeb || !s?.enabled ? "none" : running ? "info" : last?.status === "error" ? "fail" : "pass"}>
+          {needsWeb ? "À espera da pesquisa na web" : !s?.enabled ? "Desligado" : running ? "A trabalhar…" : last?.status === "error" ? "Última falhou" : "Ativo"}
         </StatusPill>
       </div>
       <ul className="list-disc space-y-0.5 pl-5 text-sm">
@@ -168,8 +331,14 @@ function AgentCard({ info, onOpenRun }: { info: AgentInfo; onOpenRun: (id: strin
           </>
         )}
       </dl>
+      {needsWeb && (
+        <p className="text-sm text-muted-foreground">
+          Este agente só trabalha com pesquisa na web, para cada facto ter fonte. Fica parado até ligar a pesquisa
+          (AGENTS_WEB_SEARCH=on na Vercel).
+        </p>
+      )}
       <div className="mt-auto flex flex-wrap gap-2">
-        <Button onClick={() => run.mutate()} disabled={running || !s?.enabled}>
+        <Button onClick={() => run.mutate()} disabled={running || !s?.enabled || needsWeb}>
           {running ? "A trabalhar… (até 4 min)" : "Pôr a trabalhar agora"}
         </Button>
         <Button variant="outline" onClick={() => setEditing((v) => !v)} aria-expanded={editing}>
@@ -307,11 +476,11 @@ function RunDetail({ id, onClose }: { id: string; onClose: () => void }) {
       <div id="agent-run" className="flex flex-wrap items-center justify-between gap-3 border-b p-5">
         <div>
           <h2 className="text-xl">
-            {run ? `${AGENTS[run.agent as AgentKey]?.name ?? run.agent} · ${when(run.started_at)}` : "Relatório"}
+            {run ? `${run.agent === "regras" ? "Rotinas automáticas" : (AGENTS[run.agent as AgentKey]?.name ?? run.agent)} · ${when(run.started_at)}` : "Relatório"}
           </h2>
           {run && (
             <p className="mt-1 text-xs text-muted-foreground">
-              {run.trigger === "cron" ? "Execução agendada" : "Execução manual"} · {q.data?.actions.length ?? 0} alterações ·{" "}
+              {{ cron: "Execução agendada", manual: "Execução manual", import: "Depois de importar" }[run.trigger]} · {q.data?.actions.length ?? 0} alterações ·{" "}
               {(run.input_tokens + run.output_tokens).toLocaleString("pt-PT")} tokens
             </p>
           )}
@@ -388,7 +557,7 @@ function ActionList({ actions, empty }: { actions: ActionRow[]; empty: string })
             <div className="flex flex-wrap items-center gap-2">
               <StatusPill tone={tone}>{label}</StatusPill>
               <span className="text-xs text-muted-foreground">
-                {ENTITY_LABEL[a.entity] ?? a.entity} · {AGENTS[a.agent as AgentKey]?.name ?? a.agent} · {when(a.created_at)}
+                {ENTITY_LABEL[a.entity] ?? a.entity} · {(a.agent === "regras" ? "Rotinas" : (AGENTS[a.agent as AgentKey]?.name ?? a.agent))} · {when(a.created_at)}
               </span>
             </div>
             <p className="font-medium">{a.label}</p>

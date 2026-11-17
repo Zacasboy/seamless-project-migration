@@ -29,13 +29,14 @@ export type AgentSettingsRow = {
   autonomy: "auto" | "propor";
   frequency: "daily" | "weekly" | "manual";
   instructions: string;
+  config: Json;
   updated_at: string;
   updated_by: string | null;
 };
 export type AgentRunRow = {
   id: string;
   agent: string;
-  trigger: "manual" | "cron";
+  trigger: "manual" | "cron" | "import";
   status: "running" | "done" | "error";
   summary: string | null;
   report_md: string | null;

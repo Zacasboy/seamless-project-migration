@@ -1,25 +1,27 @@
--- Agentes do painel: catálogo (SEO), marca, conteúdo e concorrência.
+-- Agentes do painel: rotinas automáticas sem IA ("regras") e agentes de IA
+-- (catálogo/SEO, marca, conteúdo e concorrência).
 -- Cada alteração feita por um agente fica no diário (agent_actions) com o valor anterior,
 -- para poder ser desfeita no painel. Só cria tabelas novas; não apaga nem altera dados.
 
 create table if not exists public.agent_settings (
-  agent text primary key check (agent in ('catalogo','marca','conteudo','concorrencia')),
+  agent text primary key check (agent in ('regras','catalogo','marca','conteudo','concorrencia')),
   enabled boolean not null default true,
   autonomy text not null default 'auto' check (autonomy in ('auto','propor')),
   frequency text not null default 'weekly' check (frequency in ('daily','weekly','manual')),
   instructions text not null default '' check (length(instructions) <= 4000),
+  config jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now(),
   updated_by uuid references auth.users(id) on delete set null
 );
 
 insert into public.agent_settings (agent, frequency) values
-  ('catalogo','daily'), ('marca','weekly'), ('conteudo','weekly'), ('concorrencia','weekly')
+  ('regras','daily'), ('catalogo','daily'), ('marca','weekly'), ('conteudo','weekly'), ('concorrencia','weekly')
 on conflict (agent) do nothing;
 
 create table if not exists public.agent_runs (
   id uuid primary key default gen_random_uuid(),
   agent text not null references public.agent_settings(agent),
-  trigger text not null check (trigger in ('manual','cron')),
+  trigger text not null check (trigger in ('manual','cron','import')),
   status text not null default 'running' check (status in ('running','done','error')),
   summary text check (summary is null or length(summary) <= 1000),
   report_md text check (report_md is null or length(report_md) <= 60000),
