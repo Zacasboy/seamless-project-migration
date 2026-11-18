@@ -23,7 +23,7 @@ import {
   type Layout,
   type Role,
 } from "@/lib/outfits";
-import { cutoutFor, draftCutoutFor, productPhotos } from "@/lib/photos";
+import { cutoutFor, draftCutoutFor, isStoredCutout, productOnlyPhotos, productPhotos } from "@/lib/photos";
 import { saveCutout } from "@/lib/cutouts.functions";
 import { processProductPhoto } from "@/lib/cutout-flow";
 
@@ -327,16 +327,27 @@ function Editor({
     }
     try {
       const ready: Piece[] = [];
+      const skipped: string[] = [];
       for (const [i, pc] of draft.pieces.entries()) {
         const p = productOf(pc.productId);
         if (!p) continue;
         setComposing(`A preparar ${i + 1} de ${draft.pieces.length}: ${p.title}`);
-        let image = pc.image;
-        if (!pc.layout.cutout) {
-          image = draftCutoutFor(p, pc.image) ?? ((await processProductPhoto(p.id, pc.image || productPhotos(p)[0]!, { force: "recorte" })) as { url: string }).url;
+        // Num flat-lay só entram peças sem fundo: nunca a fotografia original com pessoa ou cenário.
+        let image = isStoredCutout(pc.image) ? pc.image : draftCutoutFor(p, pc.image);
+        if (!image) {
+          const usable = productOnlyPhotos(p);
+          const source = usable.includes(pc.image) ? pc.image : usable[0];
+          if (!source) {
+            skipped.push(p.title);
+            continue;
+          }
+          image = ((await processProductPhoto(p.id, source, { force: "recorte", onStatus: (m) => setComposing(`${p.title}: ${m}`) })) as { url: string }).url;
         }
         ready.push({ ...pc, image, layout: { ...pc.layout, cutout: true } });
       }
+      if (skipped.length)
+        toast.warning(`Ficaram de fora (só têm fotografias com pessoa): ${skipped.join(", ")}. Importe uma fotografia só do produto.`);
+      if (ready.length < 2) throw new Error("São precisas pelo menos 2 peças com fotografia só do produto.");
       setComposing("A compor a imagem…");
       const { imageSize } = await import("@/lib/cutout");
       const sizes = await Promise.all(ready.map((pc) => imageSize(pc.image)));

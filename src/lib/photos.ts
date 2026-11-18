@@ -93,8 +93,24 @@ export function draftCutoutFor(p: PhotoSource, photo?: string) {
   const map = cutoutMap(p);
   const e = photo ? map[photo] : undefined;
   if (e && e.tipo === "recorte" && e.url && e.estado !== "rejeitado") return e.url;
-  return cutoutFor(p, photo);
+  const approved = cutoutFor(p, photo);
+  if (approved) return approved;
+  // Qualquer recorte ainda por verificar, pela ordem da galeria.
+  for (const u of productPhotos(p)) {
+    const x = map[u];
+    if (x && x.tipo === "recorte" && x.url && x.estado !== "rejeitado") return x.url;
+  }
+  return undefined;
 }
+
+/** Fotografias que servem para recortar (não marcadas como foto com pessoa/cenário). */
+export function productOnlyPhotos(p: PhotoSource) {
+  const map = cutoutMap(p);
+  return productPhotos(p).filter((u) => map[u]?.tipo !== "fundo");
+}
+
+/** Endereço de um recorte guardado pela loja (e não uma fotografia original ou uma imagem de conjunto). */
+export const isStoredCutout = (url: string) => /\/outfit-cutouts\//.test(url) && !/\/outfit-cutouts\/conjuntos\//.test(url);
 
 export const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

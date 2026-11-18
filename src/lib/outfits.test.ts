@@ -134,3 +134,12 @@ describe("storePhotos", () => {
     expect(parseEntry({ tipo: "recorte", estado: "aprovado" })).toBeNull();
   });
 });
+
+describe("roleOf pelo nome", () => {
+  it("o nome manda quando a categoria está errada", () => {
+    expect(roleOf({ title: "Calça Casual", category: "Conjuntos", garment_type: "vestido" })).toBe("calcas");
+    expect(roleOf({ title: "Cinto de couro fivela quadrada", category: "Conjuntos" })).toBe("acessorio");
+    expect(roleOf({ title: "Camisola de lã", category: "Conjuntos" })).toBe("cima");
+    expect(roleOf({ title: "Sapatos Mocassin", category: "Calçado" })).toBe("calcado");
+  });
+});

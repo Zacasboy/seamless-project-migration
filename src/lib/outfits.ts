@@ -3,6 +3,7 @@
 // com pequenas rotações para parecer escolhido à mão; o painel pode ajustar cada peça.
 
 import { cutoutFor } from "@/lib/photos";
+import { findType } from "@/lib/taxonomy";
 
 export type Role = "cima" | "camada" | "calcas" | "calcado" | "acessorio" | "mala";
 
@@ -53,13 +54,17 @@ export const BACKGROUND_PAINT: Record<BackgroundKey, { from: string; to: string;
 };
 
 // Papel de cada subcategoria / categoria da loja.
-export function roleOf(p: { category?: string | null; garment_type?: string | null }): Role {
-  const sub = p.garment_type ?? "";
-  if (p.category === "Calças") return "calcas";
-  if (p.category === "Calçado") return "calcado";
-  if (p.category === "Malas") return "mala";
-  if (p.category === "Acessórios") return "acessorio";
-  if (p.category === "Casacos" || sub === "Cardigans") return "camada";
+// O nome do produto manda quando diz claramente o que é ("Calça casual" é calças mesmo que a
+// categoria esteja errada); senão usa a categoria.
+export function roleOf(p: { title?: string | null; category?: string | null; garment_type?: string | null }): Role {
+  const t = p.title ? findType(p.title) : null;
+  const category = t && t.category !== "Conjuntos" ? t.category : p.category;
+  const sub = (t && t.category !== "Conjuntos" ? t.sub : "") || p.garment_type || "";
+  if (category === "Calças") return "calcas";
+  if (category === "Calçado") return "calcado";
+  if (category === "Malas") return "mala";
+  if (category === "Acessórios") return "acessorio";
+  if (category === "Casacos" || sub === "Cardigans") return "camada";
   return "cima";
 }
 
@@ -102,20 +107,22 @@ export function autoLayout(items: { role: Role }[]): Layout[] {
 // Caixas onde cada peça cabe (em % do quadro 4:5), como num flat-lay real:
 // parte de cima à esquerda, calças na vertical à direita, calçado em baixo, acessórios nos vazios.
 type Box = { x: number; y: number; w: number; h: number; r: number; z: number };
+// Modelado nas referências da marca: calças na vertical à esquerda por cima da manga, parte de cima
+// grande à direita, calçado em baixo ao centro, acessórios pequenos à direita e sobre as calças.
 const BOXES: Record<Role, Box[]> = {
-  camada: [{ x: 3, y: 3, w: 56, h: 50, r: -2, z: 2 }],
+  camada: [{ x: 26, y: 2, w: 72, h: 66, r: 0, z: 2 }],
   cima: [
-    { x: 3, y: 4, w: 56, h: 50, r: 2, z: 3 },
-    { x: 33, y: 50, w: 26, h: 22, r: -6, z: 4 }, // segunda peça de cima, dobrada ao lado
+    { x: 26, y: 2, w: 72, h: 66, r: 0, z: 2 },
+    { x: 60, y: 52, w: 34, h: 26, r: -4, z: 3 }, // segunda peça de cima, dobrada
   ],
-  calcas: [{ x: 61, y: 3, w: 36, h: 92, r: 1, z: 1 }],
-  calcado: [{ x: 4, y: 74, w: 52, h: 23, r: -3, z: 5 }],
-  mala: [{ x: 4, y: 52, w: 30, h: 22, r: 3, z: 4 }],
+  calcas: [{ x: 3, y: 2, w: 34, h: 92, r: 0, z: 4 }],
+  calcado: [{ x: 30, y: 69, w: 46, h: 29, r: 0, z: 6 }],
+  mala: [{ x: 68, y: 70, w: 30, h: 26, r: 4, z: 5 }],
   acessorio: [
-    { x: 37, y: 55, w: 22, h: 20, r: 8, z: 6 },
-    { x: 6, y: 56, w: 22, h: 14, r: -5, z: 6 },
-    { x: 40, y: 2, w: 18, h: 12, r: 10, z: 6 },
-    { x: 64, y: 84, w: 18, h: 13, r: -8, z: 7 },
+    { x: 76, y: 66, w: 18, h: 16, r: 8, z: 7 },
+    { x: 8, y: 38, w: 22, h: 10, r: -4, z: 7 }, // sobre as calças (óculos, cinto enrolado)
+    { x: 78, y: 82, w: 16, h: 15, r: -8, z: 7 },
+    { x: 60, y: 84, w: 16, h: 13, r: 6, z: 7 },
   ],
 };
 const BOARD_RATIO = 5 / 4; // altura / largura
@@ -132,7 +139,7 @@ export function fitLayout(items: { role: Role; aspect: number }[]): Layout[] {
     used[it.role] = n + 1;
     const list = BOXES[it.role];
     let box = list[Math.min(n, list.length - 1)]!;
-    if (it.role === "cima" && hasLayer && n === 0) box = { x: 30, y: 6, w: 34, h: 30, r: -3, z: 4 };
+    if (it.role === "cima" && hasLayer && n === 0) box = { x: 40, y: 8, w: 40, h: 34, r: 0, z: 1 }; // espreita por baixo do casaco
     const extra = n >= list.length ? n - list.length + 1 : 0;
     const a = Math.max(0.15, Math.min(6, it.aspect || 1));
     // Altura da caixa em unidades de largura do quadro.
