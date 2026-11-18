@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
+import { Route as ConjuntosRouteImport } from './routes/conjuntos'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as EncomendarRouteImport } from './routes/encomendar'
@@ -29,6 +30,7 @@ import { Route as AuthenticatedAdminAgentesRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminCanaisRouteImport } from './routes/_authenticated/admin.canais'
 import { Route as AuthenticatedAdminClientesRouteImport } from './routes/_authenticated/admin.clientes'
 import { Route as AuthenticatedAdminColecoesRouteImport } from './routes/_authenticated/admin.colecoes'
+import { Route as AuthenticatedAdminConjuntosRouteImport } from './routes/_authenticated/admin.conjuntos'
 import { Route as AuthenticatedAdminDefinicoesRouteImport } from './routes/_authenticated/admin.definicoes'
 import { Route as AuthenticatedAdminEncomendasRouteImport } from './routes/_authenticated/admin.encomendas'
 import { Route as AuthenticatedAdminFornecedoresRouteImport } from './routes/_authenticated/admin.fornecedores'
@@ -58,6 +60,11 @@ const AuthRoute = AuthRouteImport.update({
 const CarrinhoRoute = CarrinhoRouteImport.update({
   id: '/carrinho',
   path: '/carrinho',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConjuntosRoute = ConjuntosRouteImport.update({
+  id: '/conjuntos',
+  path: '/conjuntos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContaRoute = ContaRouteImport.update({
@@ -144,6 +151,12 @@ const AuthenticatedAdminColecoesRoute =
     path: '/colecoes',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminConjuntosRoute =
+  AuthenticatedAdminConjuntosRouteImport.update({
+    id: '/conjuntos',
+    path: '/conjuntos',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminDefinicoesRoute =
   AuthenticatedAdminDefinicoesRouteImport.update({
     id: '/definicoes',
@@ -211,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
+  '/conjuntos': typeof ConjuntosRoute
   '/conta': typeof ContaRoute
   '/contacto': typeof ContactoRoute
   '/encomendar': typeof EncomendarRoute
@@ -226,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/admin/canais': typeof AuthenticatedAdminCanaisRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/colecoes': typeof AuthenticatedAdminColecoesRoute
+  '/admin/conjuntos': typeof AuthenticatedAdminConjuntosRoute
   '/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
   '/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
@@ -243,6 +258,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
+  '/conjuntos': typeof ConjuntosRoute
   '/conta': typeof ContaRoute
   '/contacto': typeof ContactoRoute
   '/encomendar': typeof EncomendarRoute
@@ -257,6 +273,7 @@ export interface FileRoutesByTo {
   '/admin/canais': typeof AuthenticatedAdminCanaisRoute
   '/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/admin/colecoes': typeof AuthenticatedAdminColecoesRoute
+  '/admin/conjuntos': typeof AuthenticatedAdminConjuntosRoute
   '/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
   '/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
@@ -276,6 +293,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
+  '/conjuntos': typeof ConjuntosRoute
   '/conta': typeof ContaRoute
   '/contacto': typeof ContactoRoute
   '/encomendar': typeof EncomendarRoute
@@ -291,6 +309,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/canais': typeof AuthenticatedAdminCanaisRoute
   '/_authenticated/admin/clientes': typeof AuthenticatedAdminClientesRoute
   '/_authenticated/admin/colecoes': typeof AuthenticatedAdminColecoesRoute
+  '/_authenticated/admin/conjuntos': typeof AuthenticatedAdminConjuntosRoute
   '/_authenticated/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
   '/_authenticated/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/_authenticated/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
@@ -310,6 +329,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/carrinho'
+    | '/conjuntos'
     | '/conta'
     | '/contacto'
     | '/encomendar'
@@ -325,6 +345,7 @@ export interface FileRouteTypes {
     | '/admin/canais'
     | '/admin/clientes'
     | '/admin/colecoes'
+    | '/admin/conjuntos'
     | '/admin/definicoes'
     | '/admin/encomendas'
     | '/admin/fornecedores'
@@ -342,6 +363,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/carrinho'
+    | '/conjuntos'
     | '/conta'
     | '/contacto'
     | '/encomendar'
@@ -356,6 +378,7 @@ export interface FileRouteTypes {
     | '/admin/canais'
     | '/admin/clientes'
     | '/admin/colecoes'
+    | '/admin/conjuntos'
     | '/admin/definicoes'
     | '/admin/encomendas'
     | '/admin/fornecedores'
@@ -374,6 +397,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/carrinho'
+    | '/conjuntos'
     | '/conta'
     | '/contacto'
     | '/encomendar'
@@ -389,6 +413,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/canais'
     | '/_authenticated/admin/clientes'
     | '/_authenticated/admin/colecoes'
+    | '/_authenticated/admin/conjuntos'
     | '/_authenticated/admin/definicoes'
     | '/_authenticated/admin/encomendas'
     | '/_authenticated/admin/fornecedores'
@@ -408,6 +433,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CarrinhoRoute: typeof CarrinhoRoute
+  ConjuntosRoute: typeof ConjuntosRoute
   ContaRoute: typeof ContaRoute
   ContactoRoute: typeof ContactoRoute
   EncomendarRoute: typeof EncomendarRoute
@@ -451,6 +477,13 @@ declare module '@tanstack/react-router' {
       path: '/carrinho'
       fullPath: '/carrinho'
       preLoaderRoute: typeof CarrinhoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conjuntos': {
+      id: '/conjuntos'
+      path: '/conjuntos'
+      fullPath: '/conjuntos'
+      preLoaderRoute: typeof ConjuntosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conta': {
@@ -565,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminColecoesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/conjuntos': {
+      id: '/_authenticated/admin/conjuntos'
+      path: '/conjuntos'
+      fullPath: '/admin/conjuntos'
+      preLoaderRoute: typeof AuthenticatedAdminConjuntosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/definicoes': {
       id: '/_authenticated/admin/definicoes'
       path: '/definicoes'
@@ -650,6 +690,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminCanaisRoute: typeof AuthenticatedAdminCanaisRoute
   AuthenticatedAdminClientesRoute: typeof AuthenticatedAdminClientesRoute
   AuthenticatedAdminColecoesRoute: typeof AuthenticatedAdminColecoesRoute
+  AuthenticatedAdminConjuntosRoute: typeof AuthenticatedAdminConjuntosRoute
   AuthenticatedAdminDefinicoesRoute: typeof AuthenticatedAdminDefinicoesRoute
   AuthenticatedAdminEncomendasRoute: typeof AuthenticatedAdminEncomendasRoute
   AuthenticatedAdminFornecedoresRoute: typeof AuthenticatedAdminFornecedoresRoute
@@ -666,6 +707,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminCanaisRoute: AuthenticatedAdminCanaisRoute,
   AuthenticatedAdminClientesRoute: AuthenticatedAdminClientesRoute,
   AuthenticatedAdminColecoesRoute: AuthenticatedAdminColecoesRoute,
+  AuthenticatedAdminConjuntosRoute: AuthenticatedAdminConjuntosRoute,
   AuthenticatedAdminDefinicoesRoute: AuthenticatedAdminDefinicoesRoute,
   AuthenticatedAdminEncomendasRoute: AuthenticatedAdminEncomendasRoute,
   AuthenticatedAdminFornecedoresRoute: AuthenticatedAdminFornecedoresRoute,
@@ -696,6 +738,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CarrinhoRoute: CarrinhoRoute,
+  ConjuntosRoute: ConjuntosRoute,
   ContaRoute: ContaRoute,
   ContactoRoute: ContactoRoute,
   EncomendarRoute: EncomendarRoute,

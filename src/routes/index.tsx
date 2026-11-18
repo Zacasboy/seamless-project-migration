@@ -21,11 +21,20 @@ export const Route = createFileRoute("/")({
         "Calçado, malhas, casacos, calças, malas e acessórios de estilo intemporal. Envio para Portugal e União Europeia.",
       path: "/",
     }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(productsQuery),
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(productsQuery),
+      // Sem conjuntos (ou erro a lê-los), a página inicial mostra a secção antiga.
+      context.queryClient.ensureQueryData(outfitsQuery).catch(() => context.queryClient.setQueryData(outfitsQuery.queryKey, [])),
+    ]);
+  },
   component: Home,
 });
 
 import { CATEGORIES } from "@/lib/taxonomy";
+import { OutfitBoard } from "@/components/OutfitBoard";
+import { boardPieces } from "@/lib/outfits";
+import { outfitsQuery } from "@/lib/outfits.functions";
 
 const SERVICE: [string, string][] = [
   ["Entrega", "Portugal e União Europeia"],
@@ -41,6 +50,11 @@ function Home() {
     .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))
     .slice(0, 8);
   const looks = byCat("Conjuntos");
+  const { data: outfits } = useSuspenseQuery(outfitsQuery);
+  const boards = outfits
+    .map((o) => ({ ...o, pieces: boardPieces(o.items, data) }))
+    .filter((o) => o.pieces.length >= 2)
+    .slice(0, 3);
   // Categorias com artigos (as reais primeiro), até seis mosaicos.
   const CATS = CATEGORIES.map((c) => ({ cat: c.name, line: c.line }))
     .filter(({ cat }) => byCat(cat).length > 0)
@@ -95,7 +109,28 @@ function Home() {
       </section>
 
       <Section title="Novidades" items={latest} link={{}} />
-      <Section title="Conjuntos completos" items={looks} link={{ categoria: "Conjuntos" }} />
+      {boards.length > 0 ? (
+        <section className="mx-auto max-w-[1440px] px-4 pt-14 md:px-10 md:pt-20">
+          <div className="flex items-baseline justify-between gap-4 border-b border-foreground pb-3">
+            <h2 className="text-2xl md:text-3xl">Conjuntos completos</h2>
+            <Link to="/conjuntos" className="text-sm underline-offset-4 hover:underline">
+              Ver todos
+            </Link>
+          </div>
+          <div className="mt-6 grid gap-6 md:grid-cols-3">
+            {boards.map((b) => (
+              <div key={b.id}>
+                <OutfitBoard title={b.title} background={b.background} pieces={b.pieces} />
+                <Link to="/conjuntos" hash={b.slug} className="mt-3 block text-lg hover:underline">
+                  {b.title}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <Section title="Conjuntos completos" items={looks} link={{ categoria: "Conjuntos" }} />
+      )}
 
       <section className="mx-auto max-w-[1440px] px-4 pt-20 md:px-10">
         <dl className="grid border-y border-foreground md:grid-cols-3">

@@ -108,6 +108,11 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
               </li>
             ))}
             <li>
+              <Link to="/conjuntos" className="nav-link block py-3 hover:text-[var(--brand-accent)]">
+                Conjuntos
+              </Link>
+            </li>
+            <li>
               <Link
                 to="/loja"
                 className="nav-link block py-3 text-[var(--brand-accent)] hover:underline"
@@ -161,6 +166,9 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
                 )}
               </div>
             ))}
+            <Link to="/conjuntos" onClick={() => setOpen(false)} className="block py-1 font-display text-2xl">
+              Conjuntos
+            </Link>
             <hr className="my-4" />
             <Link to="/contacto" onClick={() => setOpen(false)} className="py-2">
               Contacto

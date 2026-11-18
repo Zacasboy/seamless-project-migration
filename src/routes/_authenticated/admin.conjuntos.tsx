@@ -1,0 +1,550 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- tabelas editoriais com colunas opcionais (galeria/posição) */
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { AdminHeader, Panel } from "@/components/admin/AdminHeader";
+import { OutfitBoard, type BoardPiece } from "@/components/OutfitBoard";
+import { StatusPill } from "@/components/StatusPill";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { euro } from "@/lib/cart";
+import {
+  BACKGROUNDS,
+  autoLayout,
+  boardPieces,
+  roleOf,
+  slugifyOutfit,
+  sortByRole,
+  suggestOutfits,
+  type BackgroundKey,
+  type Layout,
+  type Role,
+} from "@/lib/outfits";
+import { productPhotos } from "@/lib/photos";
+
+export const Route = createFileRoute("/_authenticated/admin/conjuntos")({ component: Page });
+
+type Product = {
+  id: string;
+  slug: string;
+  title: string;
+  price: number | string;
+  category: string | null;
+  garment_type: string | null;
+  gender: string | null;
+  color_options: string[] | null;
+  image_url: string | null;
+  gallery?: string[] | null;
+  published: boolean;
+  is_demo: boolean;
+};
+type Piece = { key: string; productId: string; color: string; size: string; image: string; layout: Layout };
+type Draft = {
+  id?: string;
+  title: string;
+  description: string;
+  status: "draft" | "published";
+  background: BackgroundKey;
+  gender: string;
+  palette: string;
+  pieces: Piece[];
+};
+
+const ROLE_LABEL: Record<Role, string> = {
+  cima: "Parte de cima",
+  camada: "Casaco",
+  calcas: "Calças",
+  calcado: "Calçado",
+  acessorio: "Acessório",
+  mala: "Mala",
+};
+const emptyDraft = (): Draft => ({
+  title: "",
+  description: "",
+  status: "draft",
+  background: "cinza",
+  gender: "homem",
+  palette: "",
+  pieces: [],
+});
+const newKey = () => Math.random().toString(36).slice(2, 10);
+
+function useData() {
+  const products = useQuery({
+    queryKey: ["admin", "outfit-products"],
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("products") as any)
+        .select("*")
+        .eq("is_demo", false)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data as Product[];
+    },
+  });
+  const outfits = useQuery({
+    queryKey: ["admin", "outfits"],
+    queryFn: async () => {
+      const { data: o, error } = await (supabase.from("editorial_outfits" as any) as any)
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      const ids = (o ?? []).map((x: any) => x.id);
+      const { data: items } = ids.length
+        ? await (supabase.from("editorial_outfit_items" as any) as any).select("*").in("outfit_id", ids).order("position")
+        : { data: [] };
+      return (o ?? []).map((x: any) => ({ ...x, items: (items ?? []).filter((i: any) => i.outfit_id === x.id) }));
+    },
+  });
+  return { products, outfits };
+}
+
+function Page() {
+  const qc = useQueryClient();
+  const { products, outfits } = useData();
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const catalog = products.data ?? [];
+  const live = catalog.filter((p) => p.published);
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("editorial_outfits" as any) as any).delete().eq("id", id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success("Conjunto apagado.");
+      void qc.invalidateQueries({ queryKey: ["admin", "outfits"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const fromSuggestion = (s: ReturnType<typeof suggestOutfits>[number]): Draft => {
+    const ordered = sortByRole(s.items);
+    const layouts = autoLayout(ordered);
+    return {
+      ...emptyDraft(),
+      title: s.title,
+      gender: s.gender,
+      palette: s.palette,
+      background: s.palette.toLowerCase().includes("chocolate") ? "areia" : "cinza",
+      pieces: ordered.map((it, i) => {
+        const p = catalog.find((x) => x.id === it.productId)!;
+        return { key: newKey(), productId: p.id, color: it.color, size: "", image: productPhotos(p)[0] ?? "", layout: layouts[i]! };
+      }),
+    };
+  };
+
+  const edit = (o: any) => {
+    const auto = boardPieces(o.items, catalog);
+    setDraft({
+      id: o.id,
+      title: o.title,
+      description: o.description ?? "",
+      status: o.status === "published" ? "published" : "draft",
+      background: (o.background ?? "cinza") as BackgroundKey,
+      gender: o.gender ?? "homem",
+      palette: o.palette ?? "",
+      pieces: o.items
+        .filter((i: any) => catalog.some((p) => p.id === i.product_id))
+        .map((i: any) => ({
+          key: i.id,
+          productId: i.product_id,
+          color: i.color ?? "",
+          size: i.size ?? "",
+          image: i.image_url ?? auto.find((a) => a.key === i.id)?.image ?? "",
+          layout: auto.find((a) => a.key === i.id)?.layout ?? { x: 10, y: 10, w: 40, r: 0, z: 1 },
+        })),
+    });
+  };
+
+  return (
+    <>
+      <AdminHeader
+        title="Conjuntos"
+        intro="Junte 2 ou mais produtos do catálogo numa composição pronta a vestir. Na loja, cada peça destaca-se ao passar o rato e abre o artigo."
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowSuggestions((v) => !v)} disabled={!live.length}>
+              {showSuggestions ? "Esconder sugestões" : "Sugerir conjuntos"}
+            </Button>
+            <Button onClick={() => setDraft(emptyDraft())}>Novo conjunto</Button>
+          </div>
+        }
+      />
+      {draft && (
+        <Editor
+          draft={draft}
+          setDraft={setDraft}
+          catalog={catalog}
+          onDone={() => {
+            setDraft(null);
+            void qc.invalidateQueries({ queryKey: ["admin", "outfits"] });
+            void qc.invalidateQueries({ queryKey: ["outfits"] });
+          }}
+        />
+      )}
+      {showSuggestions && !draft && <Suggestions catalog={catalog} onUse={(s) => setDraft(fromSuggestion(s))} />}
+      <Panel>
+        <h2 className="text-xl">Conjuntos guardados</h2>
+        {outfits.isError && <p role="alert" className="mt-2 text-sm text-destructive">{(outfits.error as Error).message}</p>}
+        {!outfits.isLoading && !(outfits.data ?? []).length && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Ainda não há conjuntos. Use «Sugerir conjuntos» para começar a partir das combinações de cores da marca.
+          </p>
+        )}
+        <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {(outfits.data ?? []).map((o: any) => {
+            const pieces = boardPieces(o.items, catalog);
+            return (
+              <div key={o.id}>
+                <OutfitBoard title={o.title} background={o.background} pieces={pieces} />
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate font-medium">{o.title}</p>
+                  <StatusPill tone={o.status === "published" ? "pass" : "warn"}>
+                    {o.status === "published" ? "Publicado" : "Rascunho"}
+                  </StatusPill>
+                </div>
+                <p className="text-xs text-muted-foreground">{pieces.length} peças</p>
+                <div className="mt-2 flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => edit(o)}>
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => confirm("Apagar este conjunto? Os produtos ficam.") && remove.mutate(o.id)}
+                  >
+                    Apagar
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Panel>
+    </>
+  );
+}
+
+function Suggestions({ catalog, onUse }: { catalog: Product[]; onUse: (s: ReturnType<typeof suggestOutfits>[number]) => void }) {
+  const list = useMemo(() => suggestOutfits(catalog, 8), [catalog]);
+  return (
+    <Panel>
+      <h2 className="text-xl">Sugestões pelas combinações de cores</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Junta parte de cima, calças e calçado do mesmo público com cores que combinam (Chocolate e creme, Azul-marinho e camel…).
+        Escolha uma para editar e guardar.
+      </p>
+      {list.length === 0 ? (
+        <p className="mt-4 text-sm">
+          Ainda não há peças suficientes: são precisos produtos publicados com fotografia em pelo menos três papéis (parte de
+          cima, calças e calçado) e cores reconhecíveis.
+        </p>
+      ) : (
+        <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {list.map((s, i) => {
+            const ordered = sortByRole(s.items);
+            const layouts = autoLayout(ordered);
+            const pieces: BoardPiece[] = ordered.flatMap((it, k) => {
+              const p = catalog.find((x) => x.id === it.productId);
+              const image = p ? productPhotos(p)[0] : undefined;
+              return p && image
+                ? [{ key: `${i}-${k}`, productId: p.id, slug: p.slug, title: p.title, price: Number(p.price), image, color: it.color, layout: layouts[k]! }]
+                : [];
+            });
+            return (
+              <div key={i}>
+                <OutfitBoard title={s.title} background={s.palette.includes("hocolate") ? "areia" : "cinza"} pieces={pieces} />
+                <p className="mt-2 font-medium">{s.title}</p>
+                <p className="text-xs text-muted-foreground">{pieces.map((p) => `${p.title}${p.color ? ` (${p.color})` : ""}`).join(" · ")}</p>
+                <Button size="sm" className="mt-2" onClick={() => onUse(s)}>
+                  Usar esta sugestão
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+function Editor({
+  draft,
+  setDraft,
+  catalog,
+  onDone,
+}: {
+  draft: Draft;
+  setDraft: (d: Draft | null) => void;
+  catalog: Product[];
+  onDone: () => void;
+}) {
+  const [q, setQ] = useState("");
+  const [selected, setSelected] = useState<string | null>(draft.pieces[0]?.key ?? null);
+  const live = catalog.filter((p) => p.published);
+  const productOf = (id: string) => catalog.find((p) => p.id === id);
+  const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
+  const setPiece = (key: string, patch: Partial<Piece>) =>
+    set({ pieces: draft.pieces.map((p) => (p.key === key ? { ...p, ...patch } : p)) });
+
+  const relayout = (pieces: Piece[]) => {
+    const withRole = pieces.map((p) => ({ ...p, role: roleOf(productOf(p.productId) ?? {}) }));
+    const ordered = sortByRole(withRole);
+    const layouts = autoLayout(ordered);
+    return ordered.map(({ role: _r, ...p }, i) => ({ ...p, layout: { ...layouts[i]!, cutout: p.layout.cutout } }));
+  };
+  const add = (p: Product) => {
+    const piece: Piece = {
+      key: newKey(),
+      productId: p.id,
+      color: p.color_options?.[0] ?? "",
+      size: "",
+      image: productPhotos(p)[0] ?? "",
+      layout: { x: 10, y: 10, w: 40, r: 0, z: 1 },
+    };
+    const next = relayout([...draft.pieces, piece]);
+    set({ pieces: next });
+    setSelected(piece.key);
+  };
+
+  const pieces: BoardPiece[] = draft.pieces.flatMap((pc) => {
+    const p = productOf(pc.productId);
+    return p && pc.image
+      ? [{ key: pc.key, productId: p.id, slug: p.slug, title: p.title, price: Number(p.price), image: pc.image, color: pc.color, layout: pc.layout }]
+      : [];
+  });
+  const current = draft.pieces.find((p) => p.key === selected);
+  const currentProduct = current ? productOf(current.productId) : undefined;
+  const results = live
+    .filter((p) => !draft.pieces.some((x) => x.productId === p.id))
+    .filter((p) => !q.trim() || `${p.title} ${p.category} ${p.garment_type}`.toLowerCase().includes(q.trim().toLowerCase()))
+    .slice(0, 12);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (draft.title.trim().length < 2) throw new Error("Dê um nome ao conjunto.");
+      if (draft.pieces.length < 2) throw new Error("Um conjunto precisa de pelo menos 2 peças.");
+      const outfits = supabase.from("editorial_outfits" as any) as any;
+      const base = {
+        title: draft.title.trim(),
+        description: draft.description.trim() || null,
+        status: draft.status,
+      };
+      const extra = { background: draft.background, gender: draft.gender || null, palette: draft.palette || null };
+      let id = draft.id;
+      const write = async (row: Record<string, unknown>) =>
+        id
+          ? outfits.update(row).eq("id", id).select("id").single()
+          : outfits.insert({ ...row, slug: `${slugifyOutfit(draft.title)}-${newKey().slice(0, 4)}` }).select("id").single();
+      let r = await write({ ...base, ...extra });
+      // Base de dados sem as colunas novas (migration por aplicar): grava o essencial.
+      if (r.error && /background|gender|palette|column/i.test(r.error.message)) r = await write(base);
+      if (r.error) throw new Error(r.error.message);
+      id = r.data.id as string;
+      const items = supabase.from("editorial_outfit_items" as any) as any;
+      const { error: d } = await items.delete().eq("outfit_id", id);
+      if (d) throw new Error(d.message);
+      const rows = draft.pieces.map((p, position) => ({
+        outfit_id: id,
+        product_id: p.productId,
+        position,
+        color: p.color || null,
+        size: p.size || null,
+      }));
+      let ins = await items.insert(rows.map((row, i) => ({ ...row, image_url: draft.pieces[i]!.image || null, layout: draft.pieces[i]!.layout })));
+      if (ins.error && /image_url|layout|column/i.test(ins.error.message)) ins = await items.insert(rows);
+      if (ins.error) throw new Error(ins.error.message);
+    },
+    onSuccess: () => {
+      toast.success(draft.status === "published" ? "Conjunto publicado." : "Rascunho guardado.");
+      onDone();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const total = pieces.reduce((t, p) => t + p.price, 0);
+
+  return (
+    <Panel className="p-0">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b p-5">
+        <h2 className="text-xl">{draft.id ? "Editar conjunto" : "Novo conjunto"}</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setDraft(null)}>
+            Cancelar
+          </Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending}>
+            {save.isPending ? "A guardar…" : "Guardar"}
+          </Button>
+        </div>
+      </div>
+      <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_420px]">
+        <div>
+          <OutfitBoard
+            title={draft.title || "Conjunto"}
+            background={draft.background}
+            pieces={pieces}
+            editable
+            selected={selected}
+            onSelect={setSelected}
+            onMove={(key, layout) => setPiece(key, { layout })}
+            className="mx-auto max-w-[560px]"
+          />
+          <p className="mx-auto mt-2 max-w-[560px] text-xs text-muted-foreground">
+            Arraste as peças para as posicionar. {pieces.length} peças · {euro(total)}
+          </p>
+        </div>
+        <div className="space-y-5 text-sm">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label htmlFor="o-t">Nome</Label>
+              <input id="o-t" value={draft.title} maxLength={120} onChange={(e) => set({ title: e.target.value })} className="mt-1 h-10 w-full border bg-card px-3" placeholder="Ex.: Chocolate e creme" />
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="o-d">Descrição curta</Label>
+              <input id="o-d" value={draft.description} maxLength={200} onChange={(e) => set({ description: e.target.value })} className="mt-1 h-10 w-full border bg-card px-3" placeholder="Ex.: Malha e calças de corte direito para o dia a dia." />
+            </div>
+            <div>
+              <Label htmlFor="o-b">Fundo</Label>
+              <select id="o-b" value={draft.background} onChange={(e) => set({ background: e.target.value as BackgroundKey })} className="mt-1 h-10 w-full border bg-card px-3">
+                {Object.entries(BACKGROUNDS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="o-s">Estado</Label>
+              <select id="o-s" value={draft.status} onChange={(e) => set({ status: e.target.value as Draft["status"] })} className="mt-1 h-10 w-full border bg-card px-3">
+                <option value="draft">Rascunho</option>
+                <option value="published">Publicado na loja</option>
+              </select>
+            </div>
+          </div>
+
+          <fieldset>
+            <legend className="font-medium">Peças ({draft.pieces.length})</legend>
+            <ul className="mt-2 divide-y border">
+              {draft.pieces.map((pc) => {
+                const p = productOf(pc.productId);
+                return (
+                  <li key={pc.key}>
+                    <button
+                      type="button"
+                      onClick={() => setSelected(pc.key)}
+                      aria-pressed={selected === pc.key}
+                      className={`flex w-full items-center gap-3 px-3 py-2 text-left ${selected === pc.key ? "bg-[var(--plate)]" : ""}`}
+                    >
+                      {pc.image && <img src={pc.image} alt="" className="h-10 w-10 object-cover" />}
+                      <span className="min-w-0 flex-1 truncate">{p?.title ?? "Produto removido"}</span>
+                      <span className="text-xs text-muted-foreground">{p ? ROLE_LABEL[roleOf(p)] : ""}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" variant="outline" type="button" onClick={() => set({ pieces: relayout(draft.pieces) })} disabled={draft.pieces.length < 1}>
+                Reorganizar automaticamente
+              </Button>
+            </div>
+          </fieldset>
+
+          {current && currentProduct && (
+            <fieldset className="space-y-3 border p-3">
+              <legend className="px-1 font-medium">{currentProduct.title}</legend>
+              <div>
+                <p className="text-xs text-muted-foreground">Fotografia (escolha a de fundo mais limpo)</p>
+                <ul className="mt-1 grid grid-cols-6 gap-1">
+                  {productPhotos(currentProduct).map((u) => (
+                    <li key={u}>
+                      <button
+                        type="button"
+                        onClick={() => setPiece(current.key, { image: u })}
+                        aria-pressed={current.image === u}
+                        className={`block aspect-square w-full overflow-hidden border-2 ${current.image === u ? "border-foreground" : "border-transparent"}`}
+                      >
+                        <img src={u} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <input
+                  value={productPhotos(currentProduct).includes(current.image) ? "" : current.image}
+                  onChange={(e) => /^https:\/\/\S+$/.test(e.target.value.trim()) && setPiece(current.key, { image: e.target.value.trim() })}
+                  placeholder="Ou cole o endereço https:// de uma fotografia sem fundo (PNG)"
+                  className="mt-2 h-9 w-full border bg-card px-2 text-xs"
+                />
+                <label className="mt-2 flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={!!current.layout.cutout} onChange={(e) => setPiece(current.key, { layout: { ...current.layout, cutout: e.target.checked } })} />
+                  Fotografia sem fundo (recorte): mostrar sombra
+                </label>
+              </div>
+              {(currentProduct.color_options ?? []).length > 0 && (
+                <div>
+                  <Label htmlFor="o-c">Cor neste conjunto</Label>
+                  <select id="o-c" value={current.color} onChange={(e) => setPiece(current.key, { color: e.target.value })} className="mt-1 h-9 w-full border bg-card px-2">
+                    {(currentProduct.color_options ?? []).map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <label className="text-xs">
+                  Tamanho no quadro ({Math.round(current.layout.w)}%)
+                  <input type="range" min={10} max={80} value={current.layout.w} onChange={(e) => setPiece(current.key, { layout: { ...current.layout, w: Number(e.target.value) } })} className="w-full" />
+                </label>
+                <label className="text-xs">
+                  Rotação ({current.layout.r}°)
+                  <input type="range" min={-25} max={25} value={current.layout.r} onChange={(e) => setPiece(current.key, { layout: { ...current.layout, r: Number(e.target.value) } })} className="w-full" />
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" type="button" onClick={() => setPiece(current.key, { layout: { ...current.layout, z: Math.max(...draft.pieces.map((p) => p.layout.z)) + 1 } })}>
+                  Trazer para a frente
+                </Button>
+                <Button size="sm" variant="outline" type="button" onClick={() => setPiece(current.key, { layout: { ...current.layout, z: Math.min(...draft.pieces.map((p) => p.layout.z)) - 1 } })}>
+                  Enviar para trás
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  type="button"
+                  className="text-destructive"
+                  onClick={() => {
+                    set({ pieces: draft.pieces.filter((p) => p.key !== current.key) });
+                    setSelected(null);
+                  }}
+                >
+                  Retirar do conjunto
+                </Button>
+              </div>
+            </fieldset>
+          )}
+
+          <div>
+            <Label htmlFor="o-q">Acrescentar produto</Label>
+            <input id="o-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Procurar por nome ou categoria" className="mt-1 h-9 w-full border bg-card px-2" />
+            <ul className="mt-2 max-h-64 divide-y overflow-auto border">
+              {results.map((p) => (
+                <li key={p.id}>
+                  <button type="button" onClick={() => add(p)} className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-[var(--plate)]">
+                    {productPhotos(p)[0] && <img src={productPhotos(p)[0]} alt="" loading="lazy" className="h-9 w-9 object-cover" />}
+                    <span className="min-w-0 flex-1 truncate">{p.title}</span>
+                    <span className="text-xs text-muted-foreground">{p.garment_type ?? p.category}</span>
+                  </button>
+                </li>
+              ))}
+              {results.length === 0 && <li className="px-3 py-2 text-muted-foreground">Nenhum produto publicado encontrado.</li>}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </Panel>
+  );
+}
