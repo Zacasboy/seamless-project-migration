@@ -81,3 +81,38 @@ export const saveCutout = createServerFn({ method: "POST" })
       );
     return { url: supabaseAdmin.storage.from(CUTOUT_BUCKET).getPublicUrl(path).data.publicUrl };
   });
+
+/**
+ * Regista o tratamento de uma fotografia do produto: endereço do recorte, "fundo" (fica como está)
+ * ou null (volta a "por tratar"). A fotografia original nunca é apagada.
+ */
+export const setPhotoTreatment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        productId: z.string().min(1).max(64),
+        photo: z.string().regex(/^https:\/\/\S+$/).max(2000),
+        value: z.union([z.literal("fundo"), z.string().regex(/^https:\/\/\S+$/).max(2000), z.null()]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as unknown as SupabaseClient;
+    const cur = await db.from("products").select("photo_cutouts").eq("id", data.productId).maybeSingle();
+    if (cur.error)
+      throw new Error(
+        /photo_cutouts/.test(cur.error.message)
+          ? "Falta aplicar a atualização da base de dados das fotografias (migration product_cutouts)."
+          : "Não foi possível ler o produto.",
+      );
+    if (!cur.data) throw new Error("Produto não encontrado.");
+    const map = { ...((cur.data as { photo_cutouts?: Record<string, string> }).photo_cutouts ?? {}) };
+    if (data.value === null) delete map[data.photo];
+    else map[data.photo] = data.value;
+    const up = await db.from("products").update({ photo_cutouts: map }).eq("id", data.productId);
+    if (up.error) throw new Error("Não foi possível guardar.");
+    return { photo_cutouts: map };
+  });

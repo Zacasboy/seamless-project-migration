@@ -13,6 +13,7 @@ import { euro } from "@/lib/cart";
 import {
   BACKGROUNDS,
   autoLayout,
+  fitLayout,
   boardPieces,
   roleOf,
   slugifyOutfit,
@@ -22,8 +23,9 @@ import {
   type Layout,
   type Role,
 } from "@/lib/outfits";
-import { productPhotos } from "@/lib/photos";
-import { fetchPhotoForCutout, saveCutout } from "@/lib/cutouts.functions";
+import { cutoutFor, productPhotos } from "@/lib/photos";
+import { saveCutout } from "@/lib/cutouts.functions";
+import { processProductPhoto } from "@/lib/cutout-flow";
 
 export const Route = createFileRoute("/_authenticated/admin/conjuntos")({ component: Page });
 
@@ -38,6 +40,7 @@ type Product = {
   color_options: string[] | null;
   image_url: string | null;
   gallery?: string[] | null;
+  photo_cutouts?: unknown;
   published: boolean;
   is_demo: boolean;
 };
@@ -50,6 +53,7 @@ type Draft = {
   background: BackgroundKey;
   gender: string;
   palette: string;
+  cover: string;
   pieces: Piece[];
 };
 
@@ -65,9 +69,10 @@ const emptyDraft = (): Draft => ({
   title: "",
   description: "",
   status: "draft",
-  background: "cinza",
+  background: "loja",
   gender: "homem",
   palette: "",
+  cover: "",
   pieces: [],
 });
 const newKey = () => Math.random().toString(36).slice(2, 10);
@@ -129,10 +134,11 @@ function Page() {
       title: s.title,
       gender: s.gender,
       palette: s.palette,
-      background: s.palette.toLowerCase().includes("chocolate") ? "areia" : "cinza",
+      background: "loja",
       pieces: ordered.map((it, i) => {
         const p = catalog.find((x) => x.id === it.productId)!;
-        return { key: newKey(), productId: p.id, color: it.color, size: "", image: productPhotos(p)[0] ?? "", layout: layouts[i]! };
+        const cut = cutoutFor(p);
+        return { key: newKey(), productId: p.id, color: it.color, size: "", image: cut ?? productPhotos(p)[0] ?? "", layout: { ...layouts[i]!, cutout: !!cut } };
       }),
     };
   };
@@ -147,6 +153,7 @@ function Page() {
       background: (o.background ?? "cinza") as BackgroundKey,
       gender: o.gender ?? "homem",
       palette: o.palette ?? "",
+      cover: o.cover_url ?? "",
       pieces: o.items
         .filter((i: any) => catalog.some((p) => p.id === i.product_id))
         .map((i: any) => ({
@@ -251,9 +258,10 @@ function Suggestions({ catalog, onUse }: { catalog: Product[]; onUse: (s: Return
             const layouts = autoLayout(ordered);
             const pieces: BoardPiece[] = ordered.flatMap((it, k) => {
               const p = catalog.find((x) => x.id === it.productId);
-              const image = p ? productPhotos(p)[0] : undefined;
+              const cut = p ? cutoutFor(p) : undefined;
+              const image = cut ?? (p ? productPhotos(p)[0] : undefined);
               return p && image
-                ? [{ key: `${i}-${k}`, productId: p.id, slug: p.slug, title: p.title, price: Number(p.price), image, color: it.color, layout: layouts[k]! }]
+                ? [{ key: `${i}-${k}`, productId: p.id, slug: p.slug, title: p.title, price: Number(p.price), image, color: it.color, layout: { ...layouts[k]!, cutout: !!cut } }]
                 : [];
             });
             return (
@@ -287,15 +295,14 @@ function Editor({
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<string | null>(draft.pieces[0]?.key ?? null);
   const [cutting, setCutting] = useState<string | null>(null);
-  // Recorte grátis no navegador: lê a foto pelo servidor, tira o fundo aqui e guarda o PNG.
+  const [composing, setComposing] = useState<string | null>(null);
+  // Recorte grátis no navegador: lê a foto pelo servidor, tira o fundo aqui e guarda o PNG
+  // (fica também no produto, para a loja e para os próximos conjuntos).
   const cutOut = async (key: string, productId: string, image: string) => {
     if (!image) return;
     setCutting(key);
     try {
-      const { removeBackground } = await import("@/lib/cutout");
-      const src = image.startsWith("data:") ? image : (await fetchPhotoForCutout({ data: { url: image } })).dataUrl;
-      const png = await removeBackground(src);
-      const { url } = await saveCutout({ data: { productId, png } });
+      const { url } = (await processProductPhoto(productId, image, "recorte")) as { url: string };
       setDraft((d) =>
         d && {
           ...d,
@@ -307,6 +314,45 @@ function Editor({
       toast.error(e instanceof Error ? e.message : "Não foi possível remover o fundo.");
     } finally {
       setCutting(null);
+    }
+  };
+  /**
+   * Cria a imagem do conjunto: tira o fundo às peças que ainda o têm, dispõe-nas pelas proporções
+   * reais (como um flat-lay) e desenha a imagem final com o fundo escolhido.
+   */
+  const compose = async () => {
+    if (draft.pieces.length < 2) {
+      toast.error("Escolha pelo menos 2 peças.");
+      return;
+    }
+    try {
+      const ready: Piece[] = [];
+      for (const [i, pc] of draft.pieces.entries()) {
+        const p = productOf(pc.productId);
+        if (!p) continue;
+        setComposing(`A preparar ${i + 1} de ${draft.pieces.length}: ${p.title}`);
+        let image = pc.image;
+        if (!pc.layout.cutout) {
+          image = cutoutFor(p, pc.image) ?? ((await processProductPhoto(p.id, pc.image || productPhotos(p)[0]!, "recorte")) as { url: string }).url;
+        }
+        ready.push({ ...pc, image, layout: { ...pc.layout, cutout: true } });
+      }
+      setComposing("A compor a imagem…");
+      const { imageSize } = await import("@/lib/cutout");
+      const sizes = await Promise.all(ready.map((pc) => imageSize(pc.image)));
+      const withRole = ready.map((pc, i) => ({ pc, role: roleOf(productOf(pc.productId) ?? {}), aspect: sizes[i]!.width / Math.max(1, sizes[i]!.height) }));
+      const ordered = sortByRole(withRole);
+      const layouts = fitLayout(ordered);
+      const pieces = ordered.map((o, i) => ({ ...o.pc, layout: layouts[i]! }));
+      const { renderOutfit } = await import("@/lib/outfit-render");
+      const png = await renderOutfit(draft.background, pieces);
+      const { url } = await saveCutout({ data: { productId: "conjuntos", png } });
+      setDraft((d) => d && { ...d, pieces, cover: url });
+      toast.success("Imagem do conjunto criada. Ajuste as peças se quiser e volte a criar.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível criar a imagem.");
+    } finally {
+      setComposing(null);
     }
   };
   const live = catalog.filter((p) => p.published);
@@ -327,8 +373,8 @@ function Editor({
       productId: p.id,
       color: p.color_options?.[0] ?? "",
       size: "",
-      image: productPhotos(p)[0] ?? "",
-      layout: { x: 10, y: 10, w: 40, r: 0, z: 1 },
+      image: cutoutFor(p) ?? productPhotos(p)[0] ?? "",
+      layout: { x: 10, y: 10, w: 40, r: 0, z: 1, cutout: !!cutoutFor(p) },
     };
     const next = relayout([...draft.pieces, piece]);
     set({ pieces: next });
@@ -358,7 +404,7 @@ function Editor({
         description: draft.description.trim() || null,
         status: draft.status,
       };
-      const extra = { background: draft.background, gender: draft.gender || null, palette: draft.palette || null };
+      const extra = { background: draft.background, gender: draft.gender || null, palette: draft.palette || null, cover_url: draft.cover || null };
       let id = draft.id;
       const write = async (row: Record<string, unknown>) =>
         id
@@ -366,6 +412,10 @@ function Editor({
           : outfits.insert({ ...row, slug: `${slugifyOutfit(draft.title)}-${newKey().slice(0, 4)}` }).select("id").single();
       let r = await write({ ...base, ...extra });
       // Base de dados sem as colunas novas (migration por aplicar): grava o essencial.
+      if (r.error && /cover_url/i.test(r.error.message)) {
+        const { cover_url: _c, ...rest } = extra;
+        r = await write({ ...base, ...rest });
+      }
       if (r.error && /background|gender|palette|column/i.test(r.error.message)) r = await write(base);
       if (r.error) throw new Error(r.error.message);
       id = r.data.id as string;
@@ -420,6 +470,28 @@ function Editor({
           <p className="mx-auto mt-2 max-w-[560px] text-xs text-muted-foreground">
             Arraste as peças para as posicionar. {pieces.length} peças · {euro(total)}
           </p>
+          <div className="mx-auto mt-4 max-w-[560px] border p-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="button" onClick={compose} disabled={!!composing || draft.pieces.length < 2}>
+                {composing ? "A criar…" : draft.cover ? "Criar de novo" : "Criar imagem do conjunto"}
+              </Button>
+              <p className="min-w-0 flex-1 text-xs text-muted-foreground" role="status" aria-live="polite">
+                {composing ??
+                  "Tira o fundo às peças, arruma-as como se tivessem sido pousadas à mão e cria a imagem com o fundo escolhido."}
+              </p>
+            </div>
+            {draft.cover && (
+              <div className="mt-3 flex items-start gap-3">
+                <img src={draft.cover} alt={`Imagem do conjunto ${draft.title}`} className="w-40 border" />
+                <div className="space-y-1 text-xs">
+                  <p>Imagem pronta para redes sociais e partilha (1200×1500).</p>
+                  <a href={draft.cover} target="_blank" rel="noopener" className="underline">
+                    Abrir imagem
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <div className="space-y-5 text-sm">
           <div className="grid gap-3 sm:grid-cols-2">

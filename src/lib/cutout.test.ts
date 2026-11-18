@@ -22,3 +22,21 @@ describe("recorte", () => {
     expect(t[0]).toBeCloseTo((1 - 0.485) / 0.229);
   });
 });
+
+import { looksLikeModelPhoto, maskStats } from "./cutout";
+describe("fotografia de pessoa ou de produto", () => {
+  const S = 320;
+  const mask = (fill: (x: number, y: number) => boolean) => {
+    const a = new Uint8ClampedArray(S * S);
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) a[y * S + x] = fill(x, y) ? 255 : 0;
+    return a;
+  };
+  it("produto isolado com margem é recortado", () => {
+    const m = maskStats(mask((x, y) => x > 60 && x < 260 && y > 80 && y < 240));
+    expect(looksLikeModelPhoto(m)).toBe(false);
+  });
+  it("pessoa cortada pela margem de baixo fica com fundo", () => {
+    const m = maskStats(mask((x, y) => x > 100 && x < 220 && y > 20));
+    expect(looksLikeModelPhoto(m)).toBe(true);
+  });
+});

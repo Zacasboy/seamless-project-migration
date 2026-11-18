@@ -4,12 +4,12 @@ import { useRef, useState } from "react";
 import type { Product } from "@/lib/products.functions";
 import { ProductImage } from "@/components/ProductImage";
 import { euro } from "@/lib/cart";
-import { prefersReducedMotion, productPhotos } from "@/lib/photos";
+import { prefersReducedMotion, storePhotos } from "@/lib/photos";
 
 // Cartão de produto em formato de banner: as fotografias deslizam lado a lado (toque, setas ou
 // pontos) e, ao passar o rato, a linha de detalhe dá lugar aos tamanhos disponíveis.
 export function ProductCard({ p, eager }: { p: Product; eager?: boolean }) {
-  const photos = productPhotos(p);
+  const photos = storePhotos(p);
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const go = (n: number) => {
@@ -39,7 +39,7 @@ export function ProductCard({ p, eager }: { p: Product; eager?: boolean }) {
               <ProductImage product={p} className="h-full w-full" />
             </Link>
           ) : (
-            photos.map((src, k) => (
+            photos.map(({ src, cutout }, k) => (
               <Link
                 key={src}
                 to="/produto/$slug"
@@ -56,7 +56,7 @@ export function ProductCard({ p, eager }: { p: Product; eager?: boolean }) {
                   decoding="async"
                   width={600}
                   height={750}
-                  className="h-full w-full object-cover"
+                  className={`h-full w-full ${cutout ? "object-contain p-[9%]" : "object-cover"}`}
                 />
               </Link>
             ))
@@ -85,7 +85,7 @@ export function ProductCard({ p, eager }: { p: Product; eager?: boolean }) {
       </div>
       {photos.length > 1 && (
         <div className="mt-2 flex justify-center gap-1.5" role="group" aria-label={`Fotografias de ${p.title}`}>
-          {photos.slice(0, 8).map((src, k) => (
+          {photos.slice(0, 8).map(({ src }, k) => (
             <button
               key={src}
               type="button"

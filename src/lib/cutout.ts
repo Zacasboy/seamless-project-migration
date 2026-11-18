@@ -56,6 +56,41 @@ export function maskToAlpha(mask: Float32Array): Uint8ClampedArray {
   return out;
 }
 
+export type MaskStats = { coverage: number; top: number; bottom: number; left: number; right: number; unsure: number };
+
+/** Medidas da máscara 320×320: área ocupada, contacto com cada margem e píxeis duvidosos. */
+export function maskStats(alpha: Uint8ClampedArray, size = SIZE): MaskStats {
+  let on = 0, mid = 0, nonzero = 0;
+  for (const v of alpha) {
+    if (v > 127) on++;
+    if (v > 0) nonzero++;
+    if (v > 50 && v < 205) mid++;
+  }
+  const edge = (f: (i: number) => number) => {
+    let n = 0;
+    for (let i = 0; i < size; i++) if (alpha[f(i)]! > 127) n++;
+    return n / size;
+  };
+  return {
+    coverage: on / alpha.length,
+    top: edge((i) => i),
+    bottom: edge((i) => (size - 1) * size + i),
+    left: edge((i) => i * size),
+    right: edge((i) => i * size + size - 1),
+    unsure: nonzero ? mid / nonzero : 1,
+  };
+}
+
+/**
+ * Fotografia de pessoa/cenário (fica com fundo): a peça sai cortada pelas margens da foto
+ * (corpo cortado em cima/em baixo) ou o recorte é pouco seguro. Fotografias de produto
+ * isolado têm margem à volta e contorno nítido.
+ */
+export function looksLikeModelPhoto(m: MaskStats) {
+  const cut = [m.top, m.bottom, m.left, m.right].filter((e) => e > 0.06).length;
+  return m.unsure > 0.3 || m.coverage < 0.03 || (cut >= 1 && (m.bottom > 0.15 || m.top > 0.15) && m.coverage > 0.18) || cut >= 3;
+}
+
 /** Caixa que contém os píxeis visíveis, com margem. Devolve null se ficar vazio. */
 export function opaqueBox(alpha: Uint8ClampedArray, w: number, h: number, pad = 0.02) {
   let x0 = w, y0 = h, x1 = -1, y1 = -1;
@@ -89,14 +124,17 @@ function canvas(w: number, h: number) {
 function loadImage(src: string) {
   return new Promise<HTMLImageElement>((ok, fail) => {
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => ok(img);
     img.onerror = () => fail(new Error("Não foi possível abrir a fotografia."));
     img.src = src;
   });
 }
 
+export type CutoutResult = { png: string; width: number; height: number; stats: MaskStats; modelLike: boolean };
+
 /** Recebe a fotografia (data URL) e devolve um PNG sem fundo, recortado à peça. */
-export async function removeBackground(dataUrl: string): Promise<string> {
+export async function removeBackground(dataUrl: string): Promise<CutoutResult> {
   const [{ ort, s }, img] = await Promise.all([load(), loadImage(dataUrl)]);
   const scale = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
   const W = Math.round(img.naturalWidth * scale);
@@ -108,6 +146,7 @@ export async function removeBackground(dataUrl: string): Promise<string> {
   const result = await s.run({ [s.inputNames[0]!]: input });
   const mask = result[s.outputNames[0]!]!.data as Float32Array;
   const alpha = maskToAlpha(mask);
+  const stats = maskStats(alpha);
 
   // Máscara 320×320 em tons de cinzento, ampliada suavemente para o tamanho da fotografia.
   const m = canvas(SIZE, SIZE);
@@ -123,12 +162,22 @@ export async function removeBackground(dataUrl: string): Promise<string> {
   full.ctx.drawImage(img, 0, 0, W, H);
   const px = full.ctx.getImageData(0, 0, W, H);
   const a = new Uint8ClampedArray(W * H);
-  for (let i = 0; i < a.length; i++) px.data[i * 4 + 3] = a[i] = bigMask[i * 4]!;
+  // Borda mais firme: corta a orla clara que a ampliação da máscara deixa à volta da peça.
+  for (let i = 0; i < a.length; i++)
+    px.data[i * 4 + 3] = a[i] = Math.max(0, Math.min(255, Math.round((bigMask[i * 4]! - 70) * 1.38)));
   full.ctx.putImageData(px, 0, 0);
 
   const box = opaqueBox(a, W, H);
   if (!box) throw new Error("Não foi encontrada nenhuma peça na fotografia. Experimente outra.");
   const out = canvas(box.w, box.h);
   out.ctx.drawImage(full.c, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
-  return out.c.toDataURL("image/png");
+  return { png: out.c.toDataURL("image/png"), width: box.w, height: box.h, stats, modelLike: looksLikeModelPhoto(stats) };
 }
+
+/** Tamanho natural de uma imagem (para dispor recortes sem os deformar). */
+export async function imageSize(src: string) {
+  const img = await loadImage(src);
+  return { width: img.naturalWidth, height: img.naturalHeight };
+}
+
+export { loadImage };

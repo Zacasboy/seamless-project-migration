@@ -2,6 +2,8 @@
 // A disposição é calculada pelo papel de cada peça (parte de cima, calças, calçado, acessório),
 // com pequenas rotações para parecer escolhido à mão; o painel pode ajustar cada peça.
 
+import { cutoutFor } from "@/lib/photos";
+
 export type Role = "cima" | "camada" | "calcas" | "calcado" | "acessorio" | "mala";
 
 export type Layout = {
@@ -14,6 +16,8 @@ export type Layout = {
 };
 
 export const BACKGROUNDS = {
+  // Igual ao fundo das fotografias da loja: recortes "flutuam" como nas páginas de produto.
+  loja: { label: "Fundo da loja", css: "var(--plate)", light: true },
   cinza: { label: "Cinzento mate", css: "linear-gradient(160deg,#a9a6a1 0%,#9b9893 60%,#8f8c87 100%)", light: false },
   papel: { label: "Papel claro", css: "linear-gradient(170deg,#ecebe8 0%,#e2e0dc 100%)", light: true },
   areia: { label: "Areia", css: "linear-gradient(165deg,#e9e1d5 0%,#ddd3c4 100%)", light: true },
@@ -35,6 +39,18 @@ export const BACKGROUNDS = {
   chocolate: { label: "Chocolate", css: "linear-gradient(160deg,#4a3a2e 0%,#3c2f25 100%)", light: false },
 } as const;
 export type BackgroundKey = keyof typeof BACKGROUNDS;
+
+/** Cores para pintar o fundo numa imagem (canvas): base, luz e textura. */
+export const BACKGROUND_PAINT: Record<BackgroundKey, { from: string; to: string; texture?: "linho" | "marmore" | "madeira" }> = {
+  loja: { from: "#ece8e2", to: "#e4e0d9" },
+  cinza: { from: "#a9a6a1", to: "#8f8c87" },
+  papel: { from: "#ecebe8", to: "#e2e0dc" },
+  areia: { from: "#e9e1d5", to: "#ddd3c4" },
+  linho: { from: "#f6f4f1", to: "#dcd8d2", texture: "linho" },
+  marmore: { from: "#efe6da", to: "#e6dccd", texture: "marmore" },
+  madeira: { from: "#d8c7ad", to: "#c9b597", texture: "madeira" },
+  chocolate: { from: "#4a3a2e", to: "#3c2f25" },
+};
 
 // Papel de cada subcategoria / categoria da loja.
 export function roleOf(p: { category?: string | null; garment_type?: string | null }): Role {
@@ -80,6 +96,57 @@ export function autoLayout(items: { role: Role }[]): Layout[] {
     if (it.role === "cima" && hasLayer) base = SLOTS.cima[1]!;
     const extra = n >= slots.length ? n - slots.length + 1 : 0;
     return { ...base, x: base.x + extra * 6, y: base.y + extra * 6 };
+  });
+}
+
+// Caixas onde cada peça cabe (em % do quadro 4:5), como num flat-lay real:
+// parte de cima à esquerda, calças na vertical à direita, calçado em baixo, acessórios nos vazios.
+type Box = { x: number; y: number; w: number; h: number; r: number; z: number };
+const BOXES: Record<Role, Box[]> = {
+  camada: [{ x: 3, y: 3, w: 56, h: 50, r: -2, z: 2 }],
+  cima: [
+    { x: 3, y: 4, w: 56, h: 50, r: 2, z: 3 },
+    { x: 33, y: 50, w: 26, h: 22, r: -6, z: 4 }, // segunda peça de cima, dobrada ao lado
+  ],
+  calcas: [{ x: 61, y: 3, w: 36, h: 92, r: 1, z: 1 }],
+  calcado: [{ x: 4, y: 74, w: 52, h: 23, r: -3, z: 5 }],
+  mala: [{ x: 4, y: 52, w: 30, h: 22, r: 3, z: 4 }],
+  acessorio: [
+    { x: 37, y: 55, w: 22, h: 20, r: 8, z: 6 },
+    { x: 6, y: 56, w: 22, h: 14, r: -5, z: 6 },
+    { x: 40, y: 2, w: 18, h: 12, r: 10, z: 6 },
+    { x: 64, y: 84, w: 18, h: 13, r: -8, z: 7 },
+  ],
+};
+const BOARD_RATIO = 5 / 4; // altura / largura
+
+/**
+ * Disposição natural a partir das proporções reais de cada recorte (largura/altura):
+ * cada peça ocupa a sua caixa sem se deformar, centrada, com uma pequena rotação.
+ */
+export function fitLayout(items: { role: Role; aspect: number }[]): Layout[] {
+  const used: Partial<Record<Role, number>> = {};
+  const hasLayer = items.some((i) => i.role === "camada");
+  return items.map((it) => {
+    const n = used[it.role] ?? 0;
+    used[it.role] = n + 1;
+    const list = BOXES[it.role];
+    let box = list[Math.min(n, list.length - 1)]!;
+    if (it.role === "cima" && hasLayer && n === 0) box = { x: 30, y: 6, w: 34, h: 30, r: -3, z: 4 };
+    const extra = n >= list.length ? n - list.length + 1 : 0;
+    const a = Math.max(0.15, Math.min(6, it.aspect || 1));
+    // Altura da caixa em unidades de largura do quadro.
+    const hUnits = box.h * BOARD_RATIO;
+    const w = Math.min(box.w, hUnits * a);
+    const h = w / a / BOARD_RATIO; // em % da altura
+    return {
+      x: Math.round((box.x + (box.w - w) / 2 + extra * 5) * 10) / 10,
+      y: Math.round((box.y + (box.h - h) / 2 + extra * 5) * 10) / 10,
+      w: Math.round(w * 10) / 10,
+      r: box.r,
+      z: box.z,
+      cutout: true,
+    };
   });
 }
 
@@ -238,6 +305,7 @@ type ProductLite = {
   garment_type: string | null;
   image_url: string | null;
   gallery?: string[] | null;
+  photo_cutouts?: unknown;
 };
 
 const firstPhoto = (p: ProductLite) =>
@@ -249,14 +317,19 @@ export function boardPieces(items: StoredItem[], products: ProductLite[]) {
     .map((it) => ({ it, p: products.find((x) => x.id === it.product_id) }))
     .filter((r): r is { it: StoredItem; p: ProductLite } => !!r.p && !!(r.it.image_url || firstPhoto(r.p)));
   const auto = autoLayout(rows.map((r) => ({ role: roleOf(r.p) })));
-  return rows.map(({ it, p }, i) => ({
-    key: it.id,
-    productId: p.id,
-    slug: p.slug,
-    title: p.title,
-    price: Number(p.price),
-    image: it.image_url || firstPhoto(p),
-    color: it.color ?? null,
-    layout: it.layout ?? auto[i]!,
-  }));
+  return rows.map(({ it, p }, i) => {
+    // Sem fotografia escolhida: usa o recorte do produto, se existir.
+    const cut = it.image_url ? undefined : cutoutFor(p);
+    const layout = it.layout ?? auto[i]!;
+    return {
+      key: it.id,
+      productId: p.id,
+      slug: p.slug,
+      title: p.title,
+      price: Number(p.price),
+      image: it.image_url || cut || firstPhoto(p),
+      color: it.color ?? null,
+      layout: cut ? { ...layout, cutout: true } : layout,
+    };
+  });
 }

@@ -80,6 +80,7 @@ export function AdminCrud({
   canDelete = true,
   beforeSave,
   editorExtra,
+  headerExtra,
   emptyText = "Sem registos.",
 }: {
   table: string;
@@ -96,6 +97,7 @@ export function AdminCrud({
   beforeSave?: (payload: Row, original: Row) => Row;
   /** Bloco extra no editor (ex.: fornecedor do produto); pode alterar o registo em edição. */
   editorExtra?: (row: Row, setRow: (r: Row) => void) => ReactNode;
+  headerExtra?: ReactNode;
   emptyText?: string;
 }) {
   const qc = useQueryClient();
@@ -183,12 +185,15 @@ export function AdminCrud({
         title={title}
         intro={intro}
         actions={
-          canCreate && (
-            <Button onClick={() => openEditor({})}>
-              <Plus className="mr-1 h-4 w-4" />
-              Novo
-            </Button>
-          )
+          <div className="flex flex-wrap items-center gap-2">
+            {headerExtra}
+            {canCreate && (
+              <Button onClick={() => openEditor({})}>
+                <Plus className="mr-1 h-4 w-4" />
+                Novo
+              </Button>
+            )}
+          </div>
         }
       />
       <div className="mt-6 flex flex-wrap gap-3">

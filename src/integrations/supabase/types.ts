@@ -128,6 +128,8 @@ export type ProductRow = {
   image_url: string | null;
   image_alt: string | null;
   gallery?: string[];
+  /** Fotografia original → recorte PNG (ou "fundo" para manter a foto como está). */
+  photo_cutouts?: Record<string, string>;
   meta_title: string | null;
   meta_description: string | null;
   supplier: string | null;

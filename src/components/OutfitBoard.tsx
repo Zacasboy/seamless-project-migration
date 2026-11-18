@@ -29,6 +29,8 @@ export function OutfitBoard({
   onSelect,
   className,
   eager,
+  hotspots,
+  currentProductId,
 }: {
   title: string;
   background?: string | null | undefined;
@@ -39,6 +41,10 @@ export function OutfitBoard({
   onSelect?: ((key: string) => void) | undefined;
   className?: string | undefined;
   eager?: boolean | undefined;
+  /** Pontos sobre cada peça ("shop the look"), para mostrar que se pode tocar. */
+  hotspots?: boolean | undefined;
+  /** Produto da página atual: a etiqueta diz «Está a ver». */
+  currentProductId?: string | undefined;
 }) {
   const bg = BACKGROUNDS[(background ?? "cinza") as BackgroundKey] ?? BACKGROUNDS.cinza;
   const [active, setActive] = useState<string | null>(null);
@@ -73,7 +79,7 @@ export function OutfitBoard({
       role="group"
       aria-label={`Conjunto: ${title}`}
       onMouseLeave={() => !editable && setActive(null)}
-      className={cn("relative aspect-[4/5] w-full touch-pan-y select-none overflow-hidden", className)}
+      className={cn("relative isolate aspect-[4/5] w-full touch-pan-y select-none overflow-hidden", className)}
       style={{ background: bg.css }}
     >
       {pieces.map((p) => {
@@ -141,6 +147,18 @@ export function OutfitBoard({
             }}
           >
             {img}
+            {hotspots && (
+              <span
+                aria-hidden
+                className={cn(
+                  "pointer-events-none absolute left-1/2 top-1/2 grid h-6 w-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/90 shadow-md ring-1 ring-black/10 transition-opacity duration-300",
+                  isOn ? "opacity-0" : "opacity-100",
+                )}
+                style={{ transform: `translate(-50%,-50%) rotate(${-p.layout.r}deg)` }}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-neutral-900" />
+              </span>
+            )}
           </a>
         );
       })}
@@ -158,7 +176,10 @@ export function OutfitBoard({
                 {p.title}
                 {p.color ? <span className="text-muted-foreground"> · {p.color}</span> : null}
               </span>
-              <span className="num shrink-0">{euro(p.price)}</span>
+              <span className="num shrink-0">
+                {currentProductId === p.productId ? <span className="mr-2 text-xs text-muted-foreground">Está a ver</span> : null}
+                {euro(p.price)}
+              </span>
             </div>
           ))}
     </div>

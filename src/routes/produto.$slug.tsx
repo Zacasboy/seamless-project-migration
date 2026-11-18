@@ -13,7 +13,10 @@ import { euro, useCart } from "@/lib/cart";
 import { seo } from "@/lib/site";
 import { productsQuery } from "./index";
 import { trackView } from "@/lib/track";
-import { prefersReducedMotion, productPhotos } from "@/lib/photos";
+import { prefersReducedMotion, storePhotos } from "@/lib/photos";
+import { OutfitBoard } from "@/components/OutfitBoard";
+import { outfitsQuery, type OutfitRow } from "@/lib/outfits.functions";
+import { boardPieces } from "@/lib/outfits";
 
 const productQuery = (slug: string) =>
   queryOptions({ queryKey: ["product", slug], queryFn: () => getProduct({ data: { slug } }) });
@@ -28,7 +31,11 @@ export const Route = createFileRoute("/produto/$slug")({
   loader: async ({ context, params }) => {
     const p = await context.queryClient.ensureQueryData(productQuery(params.slug));
     if (!p) throw notFound();
-    await context.queryClient.ensureQueryData(productsQuery);
+    await Promise.all([
+      context.queryClient.ensureQueryData(productsQuery),
+      // Conjuntos são um extra: se falharem, a página do produto abre na mesma.
+      context.queryClient.ensureQueryData(outfitsQuery),
+    ]);
     return {
       title: p.meta_title || p.title,
       description: (p.meta_description || p.description || p.title).slice(0, 160),
@@ -68,6 +75,7 @@ function ProductPage() {
   const { slug } = Route.useParams();
   const { data: p } = useSuspenseQuery(productQuery(slug));
   const { data: all } = useSuspenseQuery(productsQuery);
+  const { data: outfits } = useSuspenseQuery(outfitsQuery);
   const cart = useCart();
   const nav = useNavigate();
   const [size, setSize] = useState<string | undefined>(undefined);
@@ -257,6 +265,8 @@ function ProductPage() {
         </div>
       </div>
 
+      {p && <ShopTheLook productId={p.id} outfits={outfits} products={all} />}
+
       {related.length > 0 && (
         <section className="mx-auto max-w-[1440px] px-4 pb-16 pt-12 md:px-10">
           <h2 className="mb-6 border-b border-foreground pb-3 text-2xl md:text-3xl">
@@ -281,9 +291,11 @@ function ProductPage() {
 function ProductGallery({
   product: p,
 }: {
-  product: Parameters<typeof ProductImage>[0]["product"] & { gallery?: string[] | null };
+  product: Parameters<typeof ProductImage>[0]["product"] & { gallery?: string[] | null; photo_cutouts?: unknown };
 }) {
-  const photos = productPhotos(p);
+  const photos = storePhotos(p);
+  // Recortes "flutuam" no fundo da loja; a fotografia com fundo ocupa a moldura toda.
+  const fit = (cut: boolean) => (cut ? "object-contain p-[7%]" : "object-cover");
   const [active, setActive] = useState(0);
   const thumbs = useRef<HTMLUListElement>(null);
   const strip = useRef<HTMLDivElement>(null);
@@ -304,7 +316,7 @@ function ProductGallery({
       <div className="hidden gap-3 md:grid md:grid-cols-[76px_minmax(0,1fr)]">
         <div className="relative">
           <ul ref={thumbs} className="no-scrollbar absolute inset-0 flex flex-col gap-2 overflow-y-auto pb-10" aria-label="Fotografias do produto">
-            {photos.map((u, i) => (
+            {photos.map(({ src: u, cutout }, i) => (
               <li key={u}>
                 <button
                   type="button"
@@ -316,7 +328,7 @@ function ProductGallery({
                     i === active ? "border-foreground" : "border-transparent hover:border-foreground/30"
                   }`}
                 >
-                  <img src={u} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  <img src={u} alt="" loading="lazy" className={`h-full w-full ${cutout ? "object-contain p-1" : "object-cover"}`} />
                 </button>
               </li>
             ))}
@@ -333,7 +345,7 @@ function ProductGallery({
           )}
         </div>
         <div className="plate relative aspect-[4/5] max-h-[82vh] w-full overflow-hidden">
-          {photos.map((u, i) => (
+          {photos.map(({ src: u, cutout }, i) => (
             <img
               key={u}
               src={u}
@@ -344,7 +356,7 @@ function ProductGallery({
               fetchPriority={i === 0 ? "high" : "auto"}
               width={800}
               height={1000}
-              className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-500 ease-out motion-reduce:transition-none ${
+              className={`absolute inset-0 h-full w-full ${fit(cutout)} transition-opacity duration-500 ease-out motion-reduce:transition-none ${
                 i === active ? "opacity-100" : "opacity-0"
               }`}
             />
@@ -358,19 +370,19 @@ function ProductGallery({
           onScroll={(e) => setActive(Math.round(e.currentTarget.scrollLeft / Math.max(1, e.currentTarget.clientWidth)))}
           className="no-scrollbar plate flex aspect-[4/5] snap-x snap-mandatory overflow-x-auto"
         >
-          {photos.map((u, i) => (
+          {photos.map(({ src: u, cutout }, i) => (
             <img
               key={u}
               src={u}
               alt={label(i)}
               loading={i === 0 ? "eager" : "lazy"}
-              className="h-full w-full shrink-0 snap-start object-contain"
+              className={`h-full w-full shrink-0 snap-start ${fit(cutout)}`}
             />
           ))}
         </div>
         {photos.length > 1 && (
           <div className="mt-2 flex justify-center gap-1.5">
-            {photos.map((u, i) => (
+            {photos.map(({ src: u }, i) => (
               <button
                 key={u}
                 type="button"
@@ -388,5 +400,72 @@ function ProductGallery({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * "Shop the look": os conjuntos em que este artigo entra, com um ponto sobre cada peça.
+ * Passar o rato (ou o 1.º toque) destaca a peça; clicar abre-a num separador novo.
+ */
+function ShopTheLook({
+  productId,
+  outfits,
+  products,
+}: {
+  productId: string;
+  outfits: OutfitRow[];
+  products: Parameters<typeof boardPieces>[1];
+}) {
+  const looks = outfits.filter((o) => o.items.some((i) => i.product_id === productId)).slice(0, 2);
+  if (!looks.length) return null;
+  return (
+    <section className="mx-auto max-w-[1440px] px-4 pt-14 md:px-10" aria-labelledby="stl">
+      <h2 id="stl" className="mb-6 border-b border-foreground pb-3 text-2xl md:text-3xl">
+        Shop the look
+      </h2>
+      <div className="space-y-12">
+        {looks.map((o) => {
+          const pieces = boardPieces(o.items, products);
+          const total = pieces.reduce((t, x) => t + x.price, 0);
+          return (
+            <div key={o.id} className="grid gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,4fr)] md:gap-10">
+              <OutfitBoard title={o.title} background={o.background} pieces={pieces} hotspots currentProductId={productId} />
+              <div className="md:self-center">
+                <p className="text-xl">{o.title}</p>
+                {o.description && <p className="mt-1 text-sm text-muted-foreground">{o.description}</p>}
+                <ul className="mt-5 divide-y border-y">
+                  {pieces.map((x) => (
+                    <li key={x.key}>
+                      <a
+                        href={`/produto/${x.slug}`}
+                        target={x.productId === productId ? undefined : "_blank"}
+                        rel="noopener"
+                        aria-current={x.productId === productId ? "page" : undefined}
+                        className="flex items-center gap-4 py-3 hover:bg-[var(--plate)]/50"
+                      >
+                        <span className="plate grid h-16 w-14 shrink-0 place-items-center overflow-hidden">
+                          <img src={x.image} alt="" loading="lazy" className={`max-h-full max-w-full ${x.layout.cutout ? "object-contain p-1" : "h-full w-full object-cover"}`} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate">{x.title}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {x.productId === productId ? "Está a ver este artigo" : (x.color ?? "Abre num separador novo")}
+                          </span>
+                        </span>
+                        <span className="num shrink-0">{euro(x.price)}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 flex justify-between text-sm">
+                  <span className="text-muted-foreground">Look completo</span>
+                  <span className="num">{euro(total)}</span>
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

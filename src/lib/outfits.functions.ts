@@ -51,4 +51,8 @@ export const listOutfits = createServerFn({ method: "GET" }).handler(async (): P
     .filter((o: OutfitRow) => o.items.length >= 2);
 });
 
-export const outfitsQuery = queryOptions({ queryKey: ["outfits"], queryFn: () => listOutfits() });
+// Conjuntos são um extra nas páginas: uma falha nunca impede a página de abrir.
+export const outfitsQuery = queryOptions({
+  queryKey: ["outfits"],
+  queryFn: () => listOutfits().catch((): OutfitRow[] => []),
+});

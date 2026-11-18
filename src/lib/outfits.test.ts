@@ -69,3 +69,47 @@ describe("conjuntos", () => {
     expect(pieces[1]!.layout.x).toBe(1);
   });
 });
+
+import { fitLayout } from "./outfits";
+import { storePhotos, cutoutFor } from "./photos";
+
+describe("fitLayout", () => {
+  it("mantém as proporções e fica dentro do quadro", () => {
+    const l = fitLayout([
+      { role: "cima", aspect: 1 },
+      { role: "calcas", aspect: 0.35 },
+      { role: "calcado", aspect: 2.2 },
+      { role: "acessorio", aspect: 1 },
+    ]);
+    for (const [i, a] of [1, 0.35, 2.2, 1].entries()) {
+      const x = l[i]!;
+      const h = x.w / a / 1.25;
+      expect(x.x).toBeGreaterThanOrEqual(0);
+      expect(x.x + x.w).toBeLessThanOrEqual(100.5);
+      expect(x.y + h).toBeLessThanOrEqual(100.5);
+      expect(x.cutout).toBe(true);
+    }
+    // Calças: nunca mais largas do que a coluna da direita.
+    expect(l[1]!.w).toBeLessThanOrEqual(36);
+  });
+});
+
+describe("storePhotos", () => {
+  const base = { gallery: ["https://a/1.jpg", "https://a/2.jpg", "https://a/3.jpg"], image_url: "https://a/1.jpg" };
+  it("sem tratamento mostra as originais", () => {
+    expect(storePhotos(base).map((x) => x.cutout)).toEqual([false, false, false]);
+  });
+  it("recortes primeiro e só uma fotografia com fundo, em segundo", () => {
+    const p = { ...base, photo_cutouts: { "https://a/1.jpg": "https://c/1.png", "https://a/2.jpg": "fundo", "https://a/3.jpg": "https://c/3.png" } };
+    expect(storePhotos(p)).toEqual([
+      { src: "https://c/1.png", cutout: true },
+      { src: "https://a/2.jpg", cutout: false },
+      { src: "https://c/3.png", cutout: true },
+    ]);
+    expect(cutoutFor(p, "https://a/3.jpg")).toBe("https://c/3.png");
+    expect(cutoutFor(p)).toBe("https://c/1.png");
+  });
+  it("ignora valores inválidos", () => {
+    expect(storePhotos({ ...base, photo_cutouts: { "https://a/1.jpg": "javascript:x" } })[0]!.cutout).toBe(false);
+  });
+});
