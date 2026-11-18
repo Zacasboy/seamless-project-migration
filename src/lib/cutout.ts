@@ -181,3 +181,42 @@ export async function imageSize(src: string) {
 }
 
 export { loadImage };
+
+/**
+ * Prepara uma imagem vinda do ComfyUI para guardar: PNG até 1200 px; se tiver transparência
+ * (recorte), corta à volta da peça. Devolve se é um recorte ou uma imagem com fundo.
+ */
+export async function normalizeResult(blob: Blob): Promise<{ png: string; transparent: boolean }> {
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = await loadImage(url);
+    for (const side of [1200, 1000, 800]) {
+      const scale = Math.min(1, side / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * scale);
+      const h = Math.round(img.naturalHeight * scale);
+      const c = canvas(w, h);
+      c.ctx.drawImage(img, 0, 0, w, h);
+      const px = c.ctx.getImageData(0, 0, w, h).data;
+      const a = new Uint8ClampedArray(w * h);
+      let clear = 0;
+      for (let i = 0; i < a.length; i++) {
+        a[i] = px[i * 4 + 3]!;
+        if (a[i]! < 10) clear++;
+      }
+      const transparent = clear / a.length > 0.05;
+      let out = c.c;
+      if (transparent) {
+        const box = opaqueBox(a, w, h);
+        if (!box) throw new Error("O ComfyUI devolveu uma imagem vazia.");
+        const o = canvas(box.w, box.h);
+        o.ctx.drawImage(c.c, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+        out = o.c;
+      }
+      const png = out.toDataURL("image/png");
+      if (png.length * 0.75 < 4.8 * 1024 * 1024) return { png, transparent };
+    }
+    throw new Error("Imagem demasiado grande para guardar.");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}

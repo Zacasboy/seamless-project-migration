@@ -34,6 +34,7 @@ import { Route as AuthenticatedAdminConjuntosRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminDefinicoesRouteImport } from './routes/_authenticated/admin.definicoes'
 import { Route as AuthenticatedAdminEncomendasRouteImport } from './routes/_authenticated/admin.encomendas'
 import { Route as AuthenticatedAdminFornecedoresRouteImport } from './routes/_authenticated/admin.fornecedores'
+import { Route as AuthenticatedAdminFotografiasRouteImport } from './routes/_authenticated/admin.fotografias'
 import { Route as AuthenticatedAdminImportarRouteImport } from './routes/_authenticated/admin.importar'
 import { Route as AuthenticatedAdminProdutosRouteImport } from './routes/_authenticated/admin.produtos'
 import { Route as AuthenticatedAdminRadarRouteImport } from './routes/_authenticated/admin.radar'
@@ -175,6 +176,12 @@ const AuthenticatedAdminFornecedoresRoute =
     path: '/fornecedores',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminFotografiasRoute =
+  AuthenticatedAdminFotografiasRouteImport.update({
+    id: '/fotografias',
+    path: '/fotografias',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminImportarRoute =
   AuthenticatedAdminImportarRouteImport.update({
     id: '/importar',
@@ -244,6 +251,7 @@ export interface FileRoutesByFullPath {
   '/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
   '/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
+  '/admin/fotografias': typeof AuthenticatedAdminFotografiasRoute
   '/admin/importar': typeof AuthenticatedAdminImportarRoute
   '/admin/produtos': typeof AuthenticatedAdminProdutosRoute
   '/admin/radar': typeof AuthenticatedAdminRadarRoute
@@ -277,6 +285,7 @@ export interface FileRoutesByTo {
   '/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
   '/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
+  '/admin/fotografias': typeof AuthenticatedAdminFotografiasRoute
   '/admin/importar': typeof AuthenticatedAdminImportarRoute
   '/admin/produtos': typeof AuthenticatedAdminProdutosRoute
   '/admin/radar': typeof AuthenticatedAdminRadarRoute
@@ -313,6 +322,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/definicoes': typeof AuthenticatedAdminDefinicoesRoute
   '/_authenticated/admin/encomendas': typeof AuthenticatedAdminEncomendasRoute
   '/_authenticated/admin/fornecedores': typeof AuthenticatedAdminFornecedoresRoute
+  '/_authenticated/admin/fotografias': typeof AuthenticatedAdminFotografiasRoute
   '/_authenticated/admin/importar': typeof AuthenticatedAdminImportarRoute
   '/_authenticated/admin/produtos': typeof AuthenticatedAdminProdutosRoute
   '/_authenticated/admin/radar': typeof AuthenticatedAdminRadarRoute
@@ -349,6 +359,7 @@ export interface FileRouteTypes {
     | '/admin/definicoes'
     | '/admin/encomendas'
     | '/admin/fornecedores'
+    | '/admin/fotografias'
     | '/admin/importar'
     | '/admin/produtos'
     | '/admin/radar'
@@ -382,6 +393,7 @@ export interface FileRouteTypes {
     | '/admin/definicoes'
     | '/admin/encomendas'
     | '/admin/fornecedores'
+    | '/admin/fotografias'
     | '/admin/importar'
     | '/admin/produtos'
     | '/admin/radar'
@@ -417,6 +429,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/definicoes'
     | '/_authenticated/admin/encomendas'
     | '/_authenticated/admin/fornecedores'
+    | '/_authenticated/admin/fotografias'
     | '/_authenticated/admin/importar'
     | '/_authenticated/admin/produtos'
     | '/_authenticated/admin/radar'
@@ -626,6 +639,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminFornecedoresRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/fotografias': {
+      id: '/_authenticated/admin/fotografias'
+      path: '/fotografias'
+      fullPath: '/admin/fotografias'
+      preLoaderRoute: typeof AuthenticatedAdminFotografiasRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/importar': {
       id: '/_authenticated/admin/importar'
       path: '/importar'
@@ -694,6 +714,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDefinicoesRoute: typeof AuthenticatedAdminDefinicoesRoute
   AuthenticatedAdminEncomendasRoute: typeof AuthenticatedAdminEncomendasRoute
   AuthenticatedAdminFornecedoresRoute: typeof AuthenticatedAdminFornecedoresRoute
+  AuthenticatedAdminFotografiasRoute: typeof AuthenticatedAdminFotografiasRoute
   AuthenticatedAdminImportarRoute: typeof AuthenticatedAdminImportarRoute
   AuthenticatedAdminProdutosRoute: typeof AuthenticatedAdminProdutosRoute
   AuthenticatedAdminRadarRoute: typeof AuthenticatedAdminRadarRoute
@@ -711,6 +732,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDefinicoesRoute: AuthenticatedAdminDefinicoesRoute,
   AuthenticatedAdminEncomendasRoute: AuthenticatedAdminEncomendasRoute,
   AuthenticatedAdminFornecedoresRoute: AuthenticatedAdminFornecedoresRoute,
+  AuthenticatedAdminFotografiasRoute: AuthenticatedAdminFotografiasRoute,
   AuthenticatedAdminImportarRoute: AuthenticatedAdminImportarRoute,
   AuthenticatedAdminProdutosRoute: AuthenticatedAdminProdutosRoute,
   AuthenticatedAdminRadarRoute: AuthenticatedAdminRadarRoute,

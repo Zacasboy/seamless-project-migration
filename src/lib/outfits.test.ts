@@ -71,7 +71,7 @@ describe("conjuntos", () => {
 });
 
 import { fitLayout } from "./outfits";
-import { storePhotos, cutoutFor } from "./photos";
+import { storePhotos, cutoutFor, draftCutoutFor, parseEntry } from "./photos";
 
 describe("fitLayout", () => {
   it("mantém as proporções e fica dentro do quadro", () => {
@@ -96,20 +96,41 @@ describe("fitLayout", () => {
 
 describe("storePhotos", () => {
   const base = { gallery: ["https://a/1.jpg", "https://a/2.jpg", "https://a/3.jpg"], image_url: "https://a/1.jpg" };
+  const ok = (url: string) => ({ url, tipo: "recorte", estado: "aprovado" });
   it("sem tratamento mostra as originais", () => {
     expect(storePhotos(base).map((x) => x.cutout)).toEqual([false, false, false]);
   });
-  it("recortes primeiro e só uma fotografia com fundo, em segundo", () => {
-    const p = { ...base, photo_cutouts: { "https://a/1.jpg": "https://c/1.png", "https://a/2.jpg": "fundo", "https://a/3.jpg": "https://c/3.png" } };
+  it("recortes por verificar não aparecem na loja", () => {
+    const p = { ...base, photo_cutouts: { "https://a/1.jpg": "https://c/1.png", "https://a/2.jpg": { url: "https://c/2.png", tipo: "recorte", estado: "pendente" } } };
+    expect(storePhotos(p).every((x) => !x.cutout)).toBe(true);
+    expect(cutoutFor(p)).toBeUndefined();
+    expect(draftCutoutFor(p, "https://a/2.jpg")).toBe("https://c/2.png");
+  });
+  it("recortes aprovados primeiro e só uma fotografia com fundo, em segundo", () => {
+    const p = { ...base, photo_cutouts: { "https://a/1.jpg": ok("https://c/1.png"), "https://a/2.jpg": "fundo", "https://a/3.jpg": ok("https://c/3.png") } };
     expect(storePhotos(p)).toEqual([
       { src: "https://c/1.png", cutout: true },
       { src: "https://a/2.jpg", cutout: false },
       { src: "https://c/3.png", cutout: true },
     ]);
     expect(cutoutFor(p, "https://a/3.jpg")).toBe("https://c/3.png");
-    expect(cutoutFor(p)).toBe("https://c/1.png");
+  });
+  it("imagem nova aprovada substitui a foto com fundo; rejeitadas ficam de fora", () => {
+    const p = {
+      ...base,
+      photo_cutouts: {
+        "https://a/1.jpg": ok("https://c/1.png"),
+        "https://a/2.jpg": { url: "https://g/2.png", tipo: "foto", estado: "aprovado" },
+        "https://a/3.jpg": { url: "https://c/3.png", tipo: "recorte", estado: "rejeitado" },
+      },
+    };
+    expect(storePhotos(p)).toEqual([
+      { src: "https://c/1.png", cutout: true },
+      { src: "https://g/2.png", cutout: false },
+    ]);
   });
   it("ignora valores inválidos", () => {
     expect(storePhotos({ ...base, photo_cutouts: { "https://a/1.jpg": "javascript:x" } })[0]!.cutout).toBe(false);
+    expect(parseEntry({ tipo: "recorte", estado: "aprovado" })).toBeNull();
   });
 });

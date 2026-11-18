@@ -23,7 +23,7 @@ import {
   type Layout,
   type Role,
 } from "@/lib/outfits";
-import { cutoutFor, productPhotos } from "@/lib/photos";
+import { cutoutFor, draftCutoutFor, productPhotos } from "@/lib/photos";
 import { saveCutout } from "@/lib/cutouts.functions";
 import { processProductPhoto } from "@/lib/cutout-flow";
 
@@ -302,7 +302,7 @@ function Editor({
     if (!image) return;
     setCutting(key);
     try {
-      const { url } = (await processProductPhoto(productId, image, "recorte")) as { url: string };
+      const { url } = (await processProductPhoto(productId, image, { force: "recorte" })) as { url: string };
       setDraft((d) =>
         d && {
           ...d,
@@ -333,7 +333,7 @@ function Editor({
         setComposing(`A preparar ${i + 1} de ${draft.pieces.length}: ${p.title}`);
         let image = pc.image;
         if (!pc.layout.cutout) {
-          image = cutoutFor(p, pc.image) ?? ((await processProductPhoto(p.id, pc.image || productPhotos(p)[0]!, "recorte")) as { url: string }).url;
+          image = draftCutoutFor(p, pc.image) ?? ((await processProductPhoto(p.id, pc.image || productPhotos(p)[0]!, { force: "recorte" })) as { url: string }).url;
         }
         ready.push({ ...pc, image, layout: { ...pc.layout, cutout: true } });
       }

@@ -8,6 +8,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // O recorte é feito no navegador do administrador; aqui só se lê a fotografia original
 // (os sites dos fornecedores não deixam o navegador lê-la diretamente) e se guarda o PNG final.
 
+type StoredEntry = string | { tipo: string; estado: string; url?: string; origem?: string };
+export type StoredMap = Record<string, StoredEntry>;
+
 export const CUTOUT_BUCKET = "outfit-cutouts";
 const MAX_SOURCE = 8 * 1024 * 1024;
 const MAX_CUTOUT = 5 * 1024 * 1024;
@@ -93,7 +96,17 @@ export const setPhotoTreatment = createServerFn({ method: "POST" })
       .object({
         productId: z.string().min(1).max(64),
         photo: z.string().regex(/^https:\/\/\S+$/).max(2000),
-        value: z.union([z.literal("fundo"), z.string().regex(/^https:\/\/\S+$/).max(2000), z.null()]),
+        value: z.union([
+          z.null(),
+          z
+            .object({
+              tipo: z.enum(["recorte", "foto", "fundo"]),
+              estado: z.enum(["pendente", "aprovado", "rejeitado"]),
+              url: z.string().regex(/^https:\/\/\S+$/).max(2000).optional(),
+              origem: z.enum(["navegador", "comfyui", "comfyui-nova", "original"]).optional(),
+            })
+            .refine((v) => v.tipo === "fundo" || !!v.url, "Falta o endereço da imagem."),
+        ]),
       })
       .parse(d),
   )
@@ -109,10 +122,10 @@ export const setPhotoTreatment = createServerFn({ method: "POST" })
           : "Não foi possível ler o produto.",
       );
     if (!cur.data) throw new Error("Produto não encontrado.");
-    const map = { ...((cur.data as { photo_cutouts?: Record<string, string> }).photo_cutouts ?? {}) };
+    const map = { ...((cur.data as { photo_cutouts?: Record<string, unknown> }).photo_cutouts ?? {}) };
     if (data.value === null) delete map[data.photo];
     else map[data.photo] = data.value;
     const up = await db.from("products").update({ photo_cutouts: map }).eq("id", data.productId);
     if (up.error) throw new Error("Não foi possível guardar.");
-    return { photo_cutouts: map };
+    return { photo_cutouts: map as StoredMap };
   });

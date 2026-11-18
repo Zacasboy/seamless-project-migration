@@ -13,7 +13,8 @@ export const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
-  `connect-src 'self' ${SUPABASE} ${GA}`,
+  // 127.0.0.1/localhost: ComfyUI no computador do administrador (só usado no painel).
+  `connect-src 'self' ${SUPABASE} ${GA} http://127.0.0.1:* http://localhost:*`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

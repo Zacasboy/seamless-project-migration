@@ -28,6 +28,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { to: "/admin/importar", label: "Importar produtos" },
       { to: "/admin/colecoes", label: "Coleções" },
       { to: "/admin/conjuntos", label: "Conjuntos" },
+      { to: "/admin/fotografias", label: "Fotografias" },
     ],
   },
   {

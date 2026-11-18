@@ -304,6 +304,10 @@
     background: var(--plate);
     color: var(--plate-label);
   }
+  /* Xadrez para verificar recortes: restos de fundo ficam visíveis. */
+  .checker {
+    background: repeating-conic-gradient(#d9d9d9 0% 25%, #ffffff 0% 50%) 50% / 16px 16px;
+  }
   .product-card {
     background: var(--pcard-bg);
     border: 1px solid var(--pcard-line);
