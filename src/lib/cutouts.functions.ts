@@ -103,7 +103,7 @@ export const setPhotoTreatment = createServerFn({ method: "POST" })
               tipo: z.enum(["recorte", "foto", "fundo"]),
               estado: z.enum(["pendente", "aprovado", "rejeitado"]),
               url: z.string().regex(/^https:\/\/\S+$/).max(2000).optional(),
-              origem: z.enum(["navegador", "comfyui", "comfyui-nova", "original"]).optional(),
+              origem: z.enum(["replicate", "navegador", "comfyui", "comfyui-nova", "original"]).optional(),
             })
             .refine((v) => v.tipo === "fundo" || !!v.url, "Falta o endereço da imagem."),
         ]),
@@ -128,4 +128,35 @@ export const setPhotoTreatment = createServerFn({ method: "POST" })
     const up = await db.from("products").update({ photo_cutouts: map }).eq("id", data.productId);
     if (up.error) throw new Error("Não foi possível guardar.");
     return { photo_cutouts: map as StoredMap };
+  });
+
+/**
+ * Recorte com BiRefNet na Replicate: corre no servidor, corta à volta da peça e guarda o PNG.
+ * Fica "pendente" até ser aprovado em Painel → Fotografias.
+ */
+export const replicateCutout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z.object({ productId: z.string().min(1).max(64), photo: z.string().regex(/^https:\/\/\S+$/).max(2000) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    safeUrl(data.photo);
+    const { birefnetCutout } = await import("@/server/replicate");
+    const { cropPng, isPng } = await import("@/server/png-crop");
+    const raw = await birefnetCutout(data.photo);
+    if (!isPng(raw)) throw new Error("A Replicate devolveu um formato inesperado (não PNG).");
+    const { png, coverage } = cropPng(raw);
+    if (png.byteLength > MAX_CUTOUT) throw new Error("Recorte demasiado grande.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const safeId = data.productId.replace(/[^a-zA-Z0-9-]/g, "");
+    const path = `${safeId}/${Date.now().toString(36)}-birefnet.png`;
+    const up = await supabaseAdmin.storage
+      .from(CUTOUT_BUCKET)
+      .upload(path, png, { contentType: "image/png", cacheControl: "31536000", upsert: false });
+    if (up.error) throw new Error("Não foi possível guardar o recorte.");
+    const url = supabaseAdmin.storage.from(CUTOUT_BUCKET).getPublicUrl(path).data.publicUrl;
+    // Peça que ocupa quase toda a foto ou quase nada: provavelmente foto de pessoa/cenário.
+    const doubtful = coverage > 0.6 || coverage < 0.02;
+    return { url, doubtful };
   });

@@ -12,6 +12,7 @@ type Row = Record<string, unknown>;
 const msg = (e: unknown) => (e instanceof Error ? e.message : "Não foi possível tratar a fotografia.");
 
 export const ENGINE_LABEL: Record<Engine, string> = {
+  replicate: "Recortar com BiRefNet (Replicate)",
   navegador: "Recortar no navegador (grátis)",
   comfyui: "Recortar com ComfyUI",
   "comfyui-nova": "Imagem nova com ComfyUI",
@@ -188,7 +189,7 @@ export function ProductPhotoPanel({ row, setRow }: { row: Row; setRow: (r: Row) 
 type Lite = { id: string; title: string; gallery: string[] | null; image_url: string | null; photo_cutouts?: unknown };
 
 /** Trata todas as fotografias ainda por tratar; o resultado fica por verificar. */
-export function BatchPhotoButton({ engine = "navegador", onDone }: { engine?: Engine; onDone?: () => void }) {
+export function BatchPhotoButton({ engine = "replicate", onDone }: { engine?: Engine; onDone?: () => void }) {
   const qc = useQueryClient();
   const [state, setState] = useState<{ done: number; total: number; current: string } | null>(null);
   const stop = useRef(false);

@@ -38,7 +38,7 @@ function Page() {
   });
   const [filter, setFilter] = useState<Filter>("pendente");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [engine, setEngine] = useState<Engine>("navegador");
+  const [engine, setEngine] = useState<Engine>("replicate");
   const products = q.data ?? [];
 
   const rows = useMemo(
@@ -82,6 +82,7 @@ function Page() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <select value={engine} onChange={(e) => setEngine(e.target.value as Engine)} className="h-10 border bg-card px-2 text-sm" aria-label="Como tratar">
+              <option value="replicate">BiRefNet na Replicate (~0,15 € / 100 fotos)</option>
               <option value="navegador">No navegador (grátis)</option>
               <option value="comfyui">ComfyUI: recorte</option>
               <option value="comfyui-nova">ComfyUI: imagem nova</option>
@@ -179,7 +180,7 @@ function ComfyPanel() {
   return (
     <Panel>
       <details>
-        <summary className="cursor-pointer select-none text-xl">ComfyUI no seu computador (grátis, opcional)</summary>
+        <summary className="cursor-pointer select-none text-xl">ComfyUI no seu computador (opcional, só Macs com chip Apple ou PC com placa gráfica)</summary>
         <div className="mt-4 grid gap-5 text-sm lg:grid-cols-2">
           <div className="space-y-3">
             <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">

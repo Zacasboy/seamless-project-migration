@@ -1,9 +1,9 @@
 // Fluxo completo de uma fotografia no painel: ler → tratar → guardar como "pendente".
 // Nada aparece na loja antes de ser aprovado na página Fotografias.
-import { fetchPhotoForCutout, saveCutout, setPhotoTreatment } from "@/lib/cutouts.functions";
+import { fetchPhotoForCutout, replicateCutout, saveCutout, setPhotoTreatment } from "@/lib/cutouts.functions";
 import type { PhotoEntry } from "@/lib/photos";
 
-export type Engine = "navegador" | "comfyui" | "comfyui-nova";
+export type Engine = "replicate" | "navegador" | "comfyui" | "comfyui-nova";
 export type PhotoOutcome = { entry: PhotoEntry; map: Record<string, unknown> };
 
 
@@ -36,7 +36,15 @@ export async function processProductPhoto(
   photo: string,
   opts: { engine?: Engine; force?: "recorte"; description?: string; onStatus?: (s: string) => void } = {},
 ): Promise<PhotoOutcome & { url?: string }> {
-  const engine = opts.engine ?? "navegador";
+  const engine = opts.engine ?? "replicate";
+  if (engine === "replicate") {
+    // Corre no servidor: a fotografia não passa pelo navegador.
+    opts.onStatus?.("A recortar com BiRefNet…");
+    const { url } = await replicateCutout({ data: { productId, photo } });
+    const entry: PhotoEntry = { url, tipo: "recorte", estado: "pendente", origem: "replicate" };
+    const r = await setEntry(productId, photo, entry);
+    return { entry, map: r.photo_cutouts, url };
+  }
   opts.onStatus?.("A ler a fotografia…");
   const src = await sourceDataUrl(photo);
 
