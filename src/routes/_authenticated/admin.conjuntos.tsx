@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- tabelas editoriais com colunas opcionais (galeria/posição) */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminHeader, Panel } from "@/components/admin/AdminHeader";
@@ -23,6 +23,7 @@ import {
   type Role,
 } from "@/lib/outfits";
 import { productPhotos } from "@/lib/photos";
+import { fetchPhotoForCutout, saveCutout } from "@/lib/cutouts.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/conjuntos")({ component: Page });
 
@@ -279,12 +280,35 @@ function Editor({
   onDone,
 }: {
   draft: Draft;
-  setDraft: (d: Draft | null) => void;
+  setDraft: Dispatch<SetStateAction<Draft | null>>;
   catalog: Product[];
   onDone: () => void;
 }) {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<string | null>(draft.pieces[0]?.key ?? null);
+  const [cutting, setCutting] = useState<string | null>(null);
+  // Recorte grátis no navegador: lê a foto pelo servidor, tira o fundo aqui e guarda o PNG.
+  const cutOut = async (key: string, productId: string, image: string) => {
+    if (!image) return;
+    setCutting(key);
+    try {
+      const { removeBackground } = await import("@/lib/cutout");
+      const src = image.startsWith("data:") ? image : (await fetchPhotoForCutout({ data: { url: image } })).dataUrl;
+      const png = await removeBackground(src);
+      const { url } = await saveCutout({ data: { productId, png } });
+      setDraft((d) =>
+        d && {
+          ...d,
+          pieces: d.pieces.map((p) => (p.key === key ? { ...p, image: url, layout: { ...p.layout, cutout: true } } : p)),
+        },
+      );
+      toast.success("Fundo removido. Confirme o resultado no quadro.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível remover o fundo.");
+    } finally {
+      setCutting(null);
+    }
+  };
   const live = catalog.filter((p) => p.published);
   const productOf = (id: string) => catalog.find((p) => p.id === id);
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
@@ -479,6 +503,19 @@ function Editor({
                   placeholder="Ou cole o endereço https:// de uma fotografia sem fundo (PNG)"
                   className="mt-2 h-9 w-full border bg-card px-2 text-xs"
                 />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                    disabled={!current.image || cutting !== null}
+                    aria-busy={cutting === current.key}
+                    onClick={() => cutOut(current.key, currentProduct.id, current.image)}
+                  >
+                    {cutting === current.key ? "A remover o fundo…" : "Remover fundo"}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Grátis, no seu navegador. A primeira vez demora uns segundos.</span>
+                </div>
                 <label className="mt-2 flex items-center gap-2 text-xs">
                   <input type="checkbox" checked={!!current.layout.cutout} onChange={(e) => setPiece(current.key, { layout: { ...current.layout, cutout: e.target.checked } })} />
                   Fotografia sem fundo (recorte): mostrar sombra

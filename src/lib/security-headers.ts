@@ -8,7 +8,8 @@ const GA =
 export const CSP = [
   "default-src 'self'",
   // 'unsafe-inline' é necessário para os scripts de hidratação do TanStack Start.
-  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com`,
+  // 'wasm-unsafe-eval' permite o modelo de remoção de fundo (WebAssembly) do painel.
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.googletagmanager.com`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
