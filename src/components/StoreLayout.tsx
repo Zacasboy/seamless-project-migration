@@ -7,9 +7,11 @@ import { SITE, isPending } from "@/lib/site";
 import { supabase } from "@/integrations/supabase/client";
 
 import { CATEGORIES } from "@/lib/taxonomy";
+import { useQuery } from "@tanstack/react-query";
+import { listProducts } from "@/lib/products.functions";
 
 // Menu da loja: categorias (com subcategorias) por esta ordem; "Coordenados" fica em Ver tudo.
-const SHOP = CATEGORIES.filter((c) => c.name !== "Coordenados").map((c) => ({
+const ALL_SHOP = CATEGORIES.filter((c) => c.name !== "Coordenados").map((c) => ({
   label: c.name,
   categoria: c.name,
   subs: c.subs as readonly string[],
@@ -30,6 +32,14 @@ export function StoreLayout({ children, className }: { children: ReactNode; clas
   const signedIn = useSignedIn();
   const [open, setOpen] = useState(false);
   const c = SITE.company;
+  // Só categorias (e subcategorias) com artigos; a mesma consulta das páginas, partilhada em cache.
+  const { data: products } = useQuery({ queryKey: ["products"], queryFn: () => listProducts() });
+  const SHOP = products
+    ? ALL_SHOP.filter((s) => products.some((p) => p.category === s.categoria)).map((s) => ({
+        ...s,
+        subs: s.subs.filter((sub) => products.some((p) => p.category === s.categoria && p.garment_type === sub)),
+      }))
+    : ALL_SHOP;
 
   return (
     <div className="flex min-h-screen flex-col">

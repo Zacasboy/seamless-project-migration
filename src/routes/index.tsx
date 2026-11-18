@@ -34,7 +34,7 @@ export const Route = createFileRoute("/")({
 import { CATEGORIES } from "@/lib/taxonomy";
 import { OutfitBoard } from "@/components/OutfitBoard";
 import { boardPieces } from "@/lib/outfits";
-import { outfitsQuery } from "@/lib/outfits.functions";
+import { outfitsQuery, approvedOutfitPhoto } from "@/lib/outfits.functions";
 
 const SERVICE: [string, string][] = [
   ["Entrega", "Portugal e União Europeia"],
@@ -120,7 +120,7 @@ function Home() {
           <div className="mt-6 grid gap-6 md:grid-cols-3">
             {boards.map((b) => (
               <div key={b.id}>
-                <OutfitBoard title={b.title} background={b.background} pieces={b.pieces} />
+                <OutfitBoard title={b.title} background={b.background} pieces={b.pieces} photo={approvedOutfitPhoto(b)} hotspots={!!approvedOutfitPhoto(b)} />
                 <Link to="/conjuntos" hash={b.slug} className="mt-3 block text-lg hover:underline">
                   {b.title}
                 </Link>

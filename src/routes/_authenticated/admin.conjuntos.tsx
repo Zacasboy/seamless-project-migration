@@ -5,6 +5,7 @@ import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminHeader, Panel } from "@/components/admin/AdminHeader";
+import { approvedOutfitPhoto } from "@/lib/outfits.functions";
 import { OutfitBoard, type BoardPiece } from "@/components/OutfitBoard";
 import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import {
   type Role,
 } from "@/lib/outfits";
 import { cutoutFor, draftCutoutFor, isStoredCutout, productOnlyPhotos, productPhotos } from "@/lib/photos";
-import { saveCutout } from "@/lib/cutouts.functions";
+import { reshootOutfit, saveCutout } from "@/lib/cutouts.functions";
 import { processProductPhoto } from "@/lib/cutout-flow";
 
 export const Route = createFileRoute("/_authenticated/admin/conjuntos")({ component: Page });
@@ -54,6 +55,8 @@ type Draft = {
   gender: string;
   palette: string;
   cover: string;
+  aiImage: string;
+  aiStatus: "" | "pendente" | "aprovado" | "rejeitado";
   pieces: Piece[];
 };
 
@@ -73,6 +76,8 @@ const emptyDraft = (): Draft => ({
   gender: "homem",
   palette: "",
   cover: "",
+  aiImage: "",
+  aiStatus: "",
   pieces: [],
 });
 const newKey = () => Math.random().toString(36).slice(2, 10);
@@ -154,6 +159,8 @@ function Page() {
       gender: o.gender ?? "homem",
       palette: o.palette ?? "",
       cover: o.cover_url ?? "",
+      aiImage: o.ai_image_url ?? "",
+      aiStatus: o.ai_status ?? "",
       pieces: o.items
         .filter((i: any) => catalog.some((p) => p.id === i.product_id))
         .map((i: any) => ({
@@ -207,7 +214,7 @@ function Page() {
             const pieces = boardPieces(o.items, catalog);
             return (
               <div key={o.id}>
-                <OutfitBoard title={o.title} background={o.background} pieces={pieces} />
+                <OutfitBoard title={o.title} background={o.background} pieces={pieces} photo={approvedOutfitPhoto(o)} />
                 <div className="mt-2 flex items-center justify-between gap-2">
                   <p className="min-w-0 truncate font-medium">{o.title}</p>
                   <StatusPill tone={o.status === "published" ? "pass" : "warn"}>
@@ -358,14 +365,35 @@ function Editor({
       const { renderOutfit } = await import("@/lib/outfit-render");
       const png = await renderOutfit(draft.background, pieces);
       const { url } = await saveCutout({ data: { productId: "conjuntos", png } });
-      setDraft((d) => d && { ...d, pieces, cover: url });
-      toast.success("Imagem do conjunto criada. Ajuste as peças se quiser e volte a criar.");
+      // Nova composição: a fotografia por IA anterior deixa de corresponder às posições.
+      setDraft((d) => d && { ...d, pieces, cover: url, aiImage: "", aiStatus: "" });
+      toast.success("Composição criada. Agora pode «Fotografar com IA» ou ajustar as peças e criar de novo.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível criar a imagem.");
     } finally {
       setComposing(null);
     }
   };
+  /**
+   * Opção híbrida: a composição (recortes reais, posições certas) vai uma vez ao modelo de edição,
+   * com os recortes como referência. Fica por verificar até ser aprovada.
+   */
+  const [shooting, setShooting] = useState(false);
+  const reshoot = async () => {
+    if (!draft.cover) return;
+    setShooting(true);
+    try {
+      const references = draft.pieces.map((p) => p.image).filter(isStoredCutout).slice(0, 7);
+      const { url } = await reshootOutfit({ data: { composite: draft.cover, references } });
+      setDraft((d) => d && { ...d, aiImage: url, aiStatus: "pendente" });
+      toast.success("Fotografia criada. Compare com a composição antes de aprovar.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível criar a fotografia.");
+    } finally {
+      setShooting(false);
+    }
+  };
+  const [regions, setRegions] = useState(true);
   const live = catalog.filter((p) => p.published);
   const productOf = (id: string) => catalog.find((p) => p.id === id);
   const set = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
@@ -415,7 +443,14 @@ function Editor({
         description: draft.description.trim() || null,
         status: draft.status,
       };
-      const extra = { background: draft.background, gender: draft.gender || null, palette: draft.palette || null, cover_url: draft.cover || null };
+      const extra = {
+        background: draft.background,
+        gender: draft.gender || null,
+        palette: draft.palette || null,
+        cover_url: draft.cover || null,
+        ai_image_url: draft.aiImage || null,
+        ai_status: draft.aiImage ? draft.aiStatus || "pendente" : null,
+      };
       let id = draft.id;
       const write = async (row: Record<string, unknown>) =>
         id
@@ -423,8 +458,13 @@ function Editor({
           : outfits.insert({ ...row, slug: `${slugifyOutfit(draft.title)}-${newKey().slice(0, 4)}` }).select("id").single();
       let r = await write({ ...base, ...extra });
       // Base de dados sem as colunas novas (migration por aplicar): grava o essencial.
+      // Base de dados sem as colunas mais recentes: grava sem elas.
+      if (r.error && /ai_image_url|ai_status/i.test(r.error.message)) {
+        const { ai_image_url: _a, ai_status: _s, ...rest } = extra;
+        r = await write({ ...base, ...rest });
+      }
       if (r.error && /cover_url/i.test(r.error.message)) {
-        const { cover_url: _c, ...rest } = extra;
+        const { cover_url: _c, ai_image_url: _a, ai_status: _s, ...rest } = extra;
         r = await write({ ...base, ...rest });
       }
       if (r.error && /background|gender|palette|column/i.test(r.error.message)) r = await write(base);
@@ -475,7 +515,13 @@ function Editor({
             editable
             selected={selected}
             onSelect={setSelected}
-            onMove={(key, layout) => setPiece(key, { layout })}
+            onMove={(key, layout) =>
+              // Mexer nas peças depois de aprovar a fotografia obriga a verificar outra vez.
+              set({
+                pieces: draft.pieces.map((p) => (p.key === key ? { ...p, layout } : p)),
+                ...(draft.aiStatus === "aprovado" ? { aiStatus: "pendente" as const } : {}),
+              })
+            }
             className="mx-auto max-w-[560px]"
           />
           <p className="mx-auto mt-2 max-w-[560px] text-xs text-muted-foreground">
@@ -491,6 +537,61 @@ function Editor({
                   "Tira o fundo às peças, arruma-as como se tivessem sido pousadas à mão e cria a imagem com o fundo escolhido."}
               </p>
             </div>
+            {draft.cover && (
+              <div className="mt-4 border-t pt-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button type="button" variant="outline" onClick={reshoot} disabled={shooting || !!composing}>
+                    {shooting ? "A fotografar… (até 1 min)" : draft.aiImage ? "Fotografar de novo com IA" : "Fotografar com IA"}
+                  </Button>
+                  <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                    Transforma a composição numa fotografia de flat-lay natural (cerca de 4 cêntimos). A IA pode alterar detalhes:
+                    só aprove se as peças estiverem iguais aos produtos e nos mesmos sítios.
+                  </p>
+                </div>
+                {draft.aiImage && (
+                  <div className="mt-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <figure>
+                        <img src={draft.cover} alt="Composição com as fotografias reais" className="w-full border" />
+                        <figcaption className="mt-1 text-xs text-muted-foreground">Composição (produtos reais)</figcaption>
+                      </figure>
+                      <figure>
+                        <OutfitBoard
+                          title={draft.title || "Conjunto"}
+                          background={draft.background}
+                          pieces={pieces}
+                          photo={draft.aiImage}
+                          showRegions={regions}
+                          hotspots
+                        />
+                        <figcaption className="mt-1 text-xs text-muted-foreground">
+                          Fotografia por IA ·{" "}
+                          {draft.aiStatus === "aprovado" ? "aprovada" : draft.aiStatus === "rejeitado" ? "rejeitada" : "por verificar"}
+                        </figcaption>
+                      </figure>
+                    </div>
+                    <label className="mt-2 flex items-center gap-2 text-xs">
+                      <input type="checkbox" checked={regions} onChange={(e) => setRegions(e.target.checked)} />
+                      Mostrar o contorno das peças (os pontos e o destaque da loja usam estas posições)
+                    </label>
+                    <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-muted-foreground">
+                      <li>Cada peça é o mesmo produto (cor, padrão, logótipo, botões)?</li>
+                      <li>Os contornos tracejados caem em cima da peça certa?</li>
+                      <li>Não apareceu nem desapareceu nenhuma peça?</li>
+                    </ul>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button type="button" size="sm" disabled={draft.aiStatus === "aprovado"} onClick={() => set({ aiStatus: "aprovado" })}>
+                        Aprovar fotografia
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" disabled={draft.aiStatus === "rejeitado"} onClick={() => set({ aiStatus: "rejeitado" })}>
+                        Rejeitar (a loja usa a composição)
+                      </Button>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">A decisão fica gravada ao carregar em «Guardar».</p>
+                  </div>
+                )}
+              </div>
+            )}
             {draft.cover && (
               <div className="mt-3 flex items-start gap-3">
                 <img src={draft.cover} alt={`Imagem do conjunto ${draft.title}`} className="w-40 border" />

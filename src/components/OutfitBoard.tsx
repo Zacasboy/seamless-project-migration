@@ -31,6 +31,8 @@ export function OutfitBoard({
   eager,
   hotspots,
   currentProductId,
+  photo,
+  showRegions,
 }: {
   title: string;
   background?: string | null | undefined;
@@ -45,6 +47,13 @@ export function OutfitBoard({
   hotspots?: boolean | undefined;
   /** Produto da página atual: a etiqueta diz «Está a ver». */
   currentProductId?: string | undefined;
+  /**
+   * Fotografia do conjunto (gerada a partir da composição e aprovada). As peças continuam nas mesmas
+   * posições, invisíveis, para o destaque e o clique de cada uma.
+   */
+  photo?: string | null | undefined;
+  /** No painel: mostra o contorno de cada peça sobre a fotografia, para confirmar que coincidem. */
+  showRegions?: boolean | undefined;
 }) {
   const bg = BACKGROUNDS[(background ?? "cinza") as BackgroundKey] ?? BACKGROUNDS.cinza;
   const [active, setActive] = useState<string | null>(null);
@@ -82,15 +91,28 @@ export function OutfitBoard({
       className={cn("relative isolate aspect-[4/5] w-full touch-pan-y select-none overflow-hidden", className)}
       style={{ background: bg.css }}
     >
+      {photo && (
+        <img
+          src={photo}
+          alt=""
+          aria-hidden
+          loading={eager ? "eager" : "lazy"}
+          decoding="async"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+      )}
       {pieces.map((p) => {
         const isOn = focus === p.key;
-        const dim = !!focus && !isOn;
+        const dim = !!focus && !isOn && !photo;
         const style = {
           left: `${p.layout.x}%`,
           top: `${p.layout.y}%`,
           width: `${p.layout.w}%`,
           zIndex: isOn ? 50 : p.layout.z,
-          transform: `rotate(${p.layout.r}deg) ${isOn && !editable ? "translateY(-1.5%) scale(1.04)" : ""}`,
+          transform: `rotate(${p.layout.r}deg) ${isOn && !editable && !photo ? "translateY(-1.5%) scale(1.04)" : ""}`,
+          // Sobre a fotografia: a peça em foco fica iluminada e o resto escurece ligeiramente.
+          ...(photo && isOn && !editable ? { boxShadow: "0 0 0 9999px rgba(0,0,0,.28)", borderRadius: "6px" } : {}),
+          ...(photo && showRegions ? { outline: "2px dashed rgba(255,255,255,.9)", outlineOffset: "-2px" } : {}),
         };
         const img = (
           <img
@@ -99,7 +121,7 @@ export function OutfitBoard({
             draggable={false}
             loading={eager ? "eager" : "lazy"}
             decoding="async"
-            className="block h-auto w-full"
+            className={cn("block h-auto w-full", photo && "opacity-0")}
             style={{
               // Fotografias com fundo claro "fundem-se" no quadro; recortes ganham sombra natural.
               mixBlendMode: !p.layout.cutout && bg.light ? "multiply" : undefined,
@@ -108,7 +130,7 @@ export function OutfitBoard({
           />
         );
         const cls = cn(
-          "absolute block outline-none transition-[transform,opacity,filter] duration-300 ease-out motion-reduce:transition-none",
+          "absolute block outline-none transition-[transform,opacity,filter,box-shadow] duration-300 ease-out motion-reduce:transition-none",
           dim && "opacity-35 saturate-50",
           editable && "cursor-move",
           editable && isOn && "outline outline-2 outline-offset-2 outline-[var(--brand-accent)]",

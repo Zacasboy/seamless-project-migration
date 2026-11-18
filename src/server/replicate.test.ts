@@ -38,4 +38,26 @@ describe("BiRefNet na Replicate", () => {
     const m = await import("./replicate");
     await expect(m.birefnetCutout("https://a/b.jpg")).rejects.toThrow(/saldo/);
   });
+
+  it("fotografa a composição com o modelo oficial, com as peças como referência", async () => {
+    vi.stubEnv("REPLICATE_API_TOKEN", "r8_test");
+    let body: { input?: Record<string, unknown> } = {};
+    let url = "";
+    vi.stubGlobal("fetch", async (u: string, init?: RequestInit) => {
+      if (u.includes("/models/google/nano-banana/predictions")) {
+        url = u;
+        body = JSON.parse(init!.body as string);
+        return json({ id: "p2", status: "succeeded", output: "https://replicate.delivery/y/out.png" });
+      }
+      if (u === "https://replicate.delivery/y/out.png") return new Response(new Uint8Array([0x89, 0x50]), { headers: { "content-type": "image/png" } });
+      return json({}, 404);
+    });
+    const { reshootFlatLay } = await import("./replicate");
+    const r = await reshootFlatLay("https://s/conjuntos/c.png", ["https://s/a.png", "https://s/b.png"]);
+    expect(url).toContain("/v1/models/google/nano-banana/predictions");
+    expect(body.input?.["image_input"]).toEqual(["https://s/conjuntos/c.png", "https://s/a.png", "https://s/b.png"]);
+    expect(body.input?.["aspect_ratio"]).toBe("match_input_image");
+    expect(String(body.input?.["prompt"])).toMatch(/same position/);
+    expect(r.type).toBe("image/png");
+  });
 });

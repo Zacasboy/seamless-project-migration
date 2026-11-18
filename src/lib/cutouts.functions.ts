@@ -160,3 +160,39 @@ export const replicateCutout = createServerFn({ method: "POST" })
     const doubtful = coverage > 0.6 || coverage < 0.02;
     return { url, doubtful };
   });
+
+/**
+ * Opção híbrida dos conjuntos: a composição feita no painel (recortes reais, posições certas) é
+ * "fotografada" como flat-lay por IA. O resultado fica por verificar: só vai para a loja depois de
+ * comparado lado a lado e aprovado.
+ */
+export const reshootOutfit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) =>
+    z
+      .object({
+        composite: z.string().regex(/^https:\/\/\S+$/).max(2000),
+        references: z.array(z.string().regex(/^https:\/\/\S+$/).max(2000)).max(7),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    for (const u of [data.composite, ...data.references]) safeUrl(u);
+    const { reshootFlatLay } = await import("@/server/replicate");
+    const { bytes, type } = await reshootFlatLay(data.composite, data.references);
+    const ext = type === "image/jpeg" ? "jpg" : type === "image/webp" ? "webp" : "png";
+    if (bytes.byteLength > MAX_CUTOUT) throw new Error("A imagem gerada é demasiado grande.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const path = `conjuntos/ia-${Date.now().toString(36)}.${ext}`;
+    const up = await supabaseAdmin.storage
+      .from(CUTOUT_BUCKET)
+      .upload(path, bytes, { contentType: type || "image/png", cacheControl: "31536000", upsert: false });
+    if (up.error)
+      throw new Error(
+        /mime|type/i.test(up.error.message)
+          ? "Falta a atualização da base de dados das imagens de conjunto (migration outfit_ai)."
+          : "Não foi possível guardar a imagem gerada.",
+      );
+    return { url: supabaseAdmin.storage.from(CUTOUT_BUCKET).getPublicUrl(path).data.publicUrl };
+  });

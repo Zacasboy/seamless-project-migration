@@ -15,7 +15,7 @@ import { productsQuery } from "./index";
 import { trackView } from "@/lib/track";
 import { prefersReducedMotion, storePhotos } from "@/lib/photos";
 import { OutfitBoard } from "@/components/OutfitBoard";
-import { outfitsQuery, type OutfitRow } from "@/lib/outfits.functions";
+import { outfitsQuery, type OutfitRow, approvedOutfitPhoto } from "@/lib/outfits.functions";
 import { boardPieces } from "@/lib/outfits";
 
 const productQuery = (slug: string) =>
@@ -429,7 +429,7 @@ function ShopTheLook({
           const total = pieces.reduce((t, x) => t + x.price, 0);
           return (
             <div key={o.id} className="grid gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,4fr)] md:gap-10">
-              <OutfitBoard title={o.title} background={o.background} pieces={pieces} hotspots currentProductId={productId} />
+              <OutfitBoard title={o.title} background={o.background} pieces={pieces} hotspots currentProductId={productId} photo={approvedOutfitPhoto(o)} />
               <div className="md:self-center">
                 <p className="text-xl">{o.title}</p>
                 {o.description && <p className="mt-1 text-sm text-muted-foreground">{o.description}</p>}

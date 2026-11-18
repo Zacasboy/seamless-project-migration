@@ -22,6 +22,8 @@ export type OutfitRow = {
   background?: string | null;
   gender?: string | null;
   palette?: string | null;
+  ai_image_url?: string | null;
+  ai_status?: string | null;
   created_at: string;
   items: OutfitItemRow[];
 };
@@ -56,3 +58,7 @@ export const outfitsQuery = queryOptions({
   queryKey: ["outfits"],
   queryFn: () => listOutfits().catch((): OutfitRow[] => []),
 });
+
+/** Fotografia do conjunto para a loja: só a gerada e aprovada na verificação. */
+export const approvedOutfitPhoto = (o: { ai_image_url?: string | null; ai_status?: string | null }) =>
+  o.ai_status === "aprovado" && o.ai_image_url ? o.ai_image_url : null;

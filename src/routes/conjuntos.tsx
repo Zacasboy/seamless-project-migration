@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { StoreLayout } from "@/components/StoreLayout";
 import { OutfitBoard } from "@/components/OutfitBoard";
 import { euro } from "@/lib/cart";
-import { outfitsQuery } from "@/lib/outfits.functions";
+import { outfitsQuery, approvedOutfitPhoto } from "@/lib/outfits.functions";
 import { boardPieces } from "@/lib/outfits";
 import { seo } from "@/lib/site";
 import { trackView } from "@/lib/track";
@@ -48,7 +48,7 @@ function Outfits() {
               const total = pieces.reduce((t, p) => t + p.price, 0);
               return (
                 <article key={o.id} id={o.slug} className="scroll-mt-28">
-                  <OutfitBoard title={o.title} background={o.background} pieces={pieces} eager={i < 2} />
+                  <OutfitBoard title={o.title} background={o.background} pieces={pieces} eager={i < 2} photo={approvedOutfitPhoto(o)} hotspots={!!approvedOutfitPhoto(o)} />
                   <div className="mt-3 flex items-baseline justify-between gap-4">
                     <h2 className="text-lg">{o.title}</h2>
                     <p className="num text-sm">{euro(total)}</p>
