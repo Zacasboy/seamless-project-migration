@@ -5,10 +5,13 @@ export const CATEGORIES = [
   { name: "Calçado", subs: ["Sapatos", "Mocassins", "Loafers", "Sapatilhas", "Botas", "Sandálias"], line: "Sapatos, mocassins e loafers" },
   { name: "Calças", subs: ["Gangas", "Casuais", "Sociais"], line: "Gangas, casuais e sociais" },
   { name: "Camisolas", subs: ["Camisolas", "Cardigans", "Sweatshirts"], line: "Malhas para os dias frios" },
+  { name: "Camisas", subs: ["Camisas", "Polos", "T-shirts"], line: "Camisas, polos e t-shirts" },
   { name: "Casacos", subs: ["Casacos", "Blusões", "Blazers"], line: "Casacos, blusões e blazers" },
   { name: "Malas", subs: ["Malas de mão", "Malas de ombro", "Malas tiracolo", "Totes", "Mochilas", "Clutches", "Carteiras"], line: "Para o dia a dia e para a noite" },
   { name: "Acessórios", subs: ["Cachecóis", "Cintos"], line: "Cachecóis e cintos" },
-  { name: "Conjuntos", subs: [], line: "Looks completos, prontos a vestir" },
+  { name: "Vestidos", subs: ["Vestidos", "Saias"], line: "Vestidos e saias" },
+  // Produtos vendidos como conjunto (duas peças). Não confundir com a página Conjuntos (looks montados).
+  { name: "Coordenados", subs: [], line: "Duas peças a condizer, vendidas juntas" },
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number]["name"];
@@ -33,7 +36,7 @@ export const TYPES: ProductType[] = [
   { re: /\b(loafers?)\b/i, pt: "Loafers", en: "Loafers", category: "Calçado", sub: "Loafers" },
   { re: /\b(mocassins?|mocassim|mocasines|moccasins?|driving shoes|penny shoes)\b/i, pt: "Mocassins", en: "Moccasins", category: "Calçado", sub: "Mocassins" },
   { re: /\b(brogues?)\b/i, pt: "Brogues", en: "Brogues", category: "Calçado", sub: "Sapatos" },
-  { re: /\b(oxfords?)\b/i, pt: "Sapatos Oxford", en: "Oxford shoes", category: "Calçado", sub: "Sapatos" },
+  { re: /\b(oxford (shoes?|brogues?)|sapatos? oxford|oxfords)\b|\boxford\b(?!\s*(shirts?|camisas?))/i, pt: "Sapatos Oxford", en: "Oxford shoes", category: "Calçado", sub: "Sapatos" },
   { re: /\b(derby|derbies)\b/i, pt: "Sapatos Derby", en: "Derby shoes", category: "Calçado", sub: "Sapatos" },
   { re: /\b(dress shoes|formal shoes|sapatos? (sociais|formais|social|formal))\b/i, pt: "Sapatos formais", en: "Dress shoes", category: "Calçado", sub: "Sapatos" },
   { re: /\b(espadrilles?|alpercatas?)\b/i, pt: "Alpercatas", en: "Espadrilles", category: "Calçado", sub: "Sapatos" },
@@ -65,13 +68,19 @@ export const TYPES: ProductType[] = [
   { re: /\b(jeans|denim pants|gangas?|cal[cç]as? de ganga)\b/i, pt: "Calças de ganga", en: "Jeans", category: "Calças", sub: "Gangas" },
   { re: /\b(dress (pants|trousers)|suit (pants|trousers)|formal (pants|trousers)|tailored (pants|trousers)|cal[cç]as? (de terno|sociais|social|de fato|de alfaiataria|formais))\b/i, pt: "Calças sociais", en: "Tailored trousers", category: "Calças", sub: "Sociais" },
   { re: /\b(chinos?|cargo pants|joggers?|sweatpants|casual (pants|trousers)|cal[cç]as?|trousers|pants)\b/i, pt: "Calças", en: "Trousers", category: "Calças", sub: "Casuais", generic: true },
+  // Camisas (polos antes das malhas: "camisola polo" é um polo)
+  { re: /\b(polos?|polo shirts?)\b/i, pt: "Polo", en: "Polo shirt", category: "Camisas", sub: "Polos" },
+  { re: /\b(t-?shirts?|tees?|camisetas?|t-?shirts? de manga)\b/i, pt: "T-shirt", en: "T-shirt", category: "Camisas", sub: "T-shirts" },
   // Camisolas
   { re: /\b(hoodies?|sweatshirts?|moletons?)\b/i, pt: "Sweatshirt", en: "Sweatshirt", category: "Camisolas", sub: "Sweatshirts" },
   { re: /\b(sweaters?|jumpers?|pullovers?|camisolas?|su[eé]ter(es)?|knitwear)\b|\btric[oô](?![a-zà-ÿ])/i, pt: "Camisola", en: "Sweater", category: "Camisolas", sub: "Camisolas" },
-  // Conjuntos
-  { re: /\b(two[- ]piece|2[- ]?pcs?|co-?ords?|conjuntos?|(?:outfit|matching) sets?)\b/i, pt: "Conjunto", en: "Two-piece set", category: "Conjuntos", sub: "" },
-  { re: /\b(dress(es)?|vestidos?)\b/i, pt: "Vestido", en: "Dress", category: "Conjuntos", sub: "" },
-  { re: /\b(shirts?|camisas?|blouses?|blusas?)\b/i, pt: "Camisa", en: "Shirt", category: "Conjuntos", sub: "" },
+  // Coordenados (duas peças vendidas juntas)
+  { re: /\b(two[- ]piece|2[- ]?pcs?|co-?ords?|conjuntos?|(?:outfit|matching) sets?)\b/i, pt: "Conjunto", en: "Two-piece set", category: "Coordenados", sub: "" },
+  // Vestidos e saias
+  { re: /\b(dress(es)?|vestidos?)\b/i, pt: "Vestido", en: "Dress", category: "Vestidos", sub: "Vestidos" },
+  { re: /\b(skirts?|saias?)\b/i, pt: "Saia", en: "Skirt", category: "Vestidos", sub: "Saias" },
+  // Camisas
+  { re: /\b(shirts?|camisas?|blouses?|blusas?)\b/i, pt: "Camisa", en: "Shirt", category: "Camisas", sub: "Camisas" },
 ];
 
 export function findType(text: string) {

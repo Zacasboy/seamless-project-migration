@@ -8,8 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { CATEGORIES } from "@/lib/taxonomy";
 
-// Menu da loja: categorias (com subcategorias) por esta ordem; "Conjuntos" fica em Ver tudo.
-const SHOP = CATEGORIES.filter((c) => c.name !== "Conjuntos").map((c) => ({
+// Menu da loja: categorias (com subcategorias) por esta ordem; "Coordenados" fica em Ver tudo.
+const SHOP = CATEGORIES.filter((c) => c.name !== "Coordenados").map((c) => ({
   label: c.name,
   categoria: c.name,
   subs: c.subs as readonly string[],

@@ -58,8 +58,9 @@ export const BACKGROUND_PAINT: Record<BackgroundKey, { from: string; to: string;
 // categoria esteja errada); senão usa a categoria.
 export function roleOf(p: { title?: string | null; category?: string | null; garment_type?: string | null }): Role {
   const t = p.title ? findType(p.title) : null;
-  const category = t && t.category !== "Conjuntos" ? t.category : p.category;
-  const sub = (t && t.category !== "Conjuntos" ? t.sub : "") || p.garment_type || "";
+  const sure = t && t.category !== "Coordenados";
+  const category = sure ? t.category : p.category;
+  const sub = (sure ? t.sub : "") || p.garment_type || "";
   if (category === "Calças") return "calcas";
   if (category === "Calçado") return "calcado";
   if (category === "Malas") return "mala";

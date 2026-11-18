@@ -49,7 +49,7 @@ function Home() {
   const latest = [...data]
     .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))
     .slice(0, 8);
-  const looks = byCat("Conjuntos");
+  const looks = byCat("Coordenados");
   const { data: outfits } = useSuspenseQuery(outfitsQuery);
   const boards = outfits
     .map((o) => ({ ...o, pieces: boardPieces(o.items, data) }))
@@ -58,7 +58,7 @@ function Home() {
   // Categorias com artigos (as reais primeiro), até seis mosaicos.
   const CATS = CATEGORIES.map((c) => ({ cat: c.name, line: c.line }))
     .filter(({ cat }) => byCat(cat).length > 0)
-    .sort((a, b) => Number(a.cat === "Conjuntos") - Number(b.cat === "Conjuntos"))
+    .sort((a, b) => Number(a.cat === "Coordenados") - Number(b.cat === "Coordenados"))
     .slice(0, 6);
   return (
     <StoreLayout>
@@ -129,7 +129,7 @@ function Home() {
           </div>
         </section>
       ) : (
-        <Section title="Conjuntos completos" items={looks} link={{ categoria: "Conjuntos" }} />
+        <Section title="Coordenados" items={looks} link={{ categoria: "Coordenados" }} />
       )}
 
       <section className="mx-auto max-w-[1440px] px-4 pt-20 md:px-10">
