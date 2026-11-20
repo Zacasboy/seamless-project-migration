@@ -54,3 +54,26 @@ describe("AliExpress", () => {
     expect(() => openToken(sealed, "outro")).toThrow();
   });
 });
+
+import { isAccountError, isGone } from "./aliexpress";
+import { SupplierError } from "./types";
+import { mergeStock, productStockStatus } from "../supplier-sync";
+
+describe("AliExpress: produto que deixou de estar à venda", () => {
+  it("«All SKU Unsaleable» e 404 contam como retirado; erros de conta param tudo", () => {
+    expect(isGone(new SupplierError("AliExpress: All SKU Unsaleable", "aliexpress"), "AliExpress: All SKU Unsaleable")).toBe(true);
+    expect(isGone(new SupplierError("Produto não encontrado na AliExpress", "aliexpress", 404), "x")).toBe(true);
+    expect(isGone(new Error("AliExpress: timeout"), "AliExpress: timeout")).toBe(false);
+    expect(isAccountError("AliExpress: Invalid access token")).toBe(true);
+    expect(isAccountError("AliExpress: All SKU Unsaleable")).toBe(false);
+  });
+  it("retirado: todas as variantes guardadas ficam esgotadas", () => {
+    const saved = [
+      { id: "a", sku: "A", size: "41", color: "Preto", stock: 12, available: true },
+      { id: "b", sku: "B", size: "42", color: "Preto", stock: 3, available: true },
+    ];
+    const merged = mergeStock(saved, []);
+    expect(merged.every((v) => !v.available && v.stock === 0)).toBe(true);
+    expect(productStockStatus(merged)).toBe("out_of_stock");
+  });
+});

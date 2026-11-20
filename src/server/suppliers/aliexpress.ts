@@ -243,6 +243,11 @@ async function getProduct(id: string) {
   return mapAliExpressProduct(id, result);
 }
 
+// "All SKU Unsaleable": nenhuma variante se vende para Portugal (produto retirado ou sem envio).
+export const isGone = (e: unknown, msg: string) =>
+  (e instanceof SupplierError && e.status === 404) || /unsaleable|not\s*found|não encontrado|offline|off.?shelf|delisted|not exist/i.test(msg);
+export const isAccountError = (msg: string) => /token|sign|app.?key|auth|permission|credencia|autoriza/i.test(msg);
+
 export const aliexpressAdapter: SupplierAdapter = {
   key: "aliexpress",
   name: "AliExpress",
@@ -262,8 +267,15 @@ export const aliexpressAdapter: SupplierAdapter = {
   async fetchStock(ids) {
     const out: StockResult[] = [];
     for (const id of ids) {
-      const p = await getProduct(id);
-      out.push({ externalId: id, variants: p.variants.map((v) => ({ id: v.id, sku: v.sku, stock: v.stock, available: v.available })) });
+      try {
+        const p = await getProduct(id);
+        out.push({ externalId: id, variants: p.variants.map((v) => ({ id: v.id, sku: v.sku, stock: v.stock, available: v.available })) });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        // Credenciais ou ligação: afeta todos os produtos, pára e avisa.
+        if (isAccountError(msg)) throw e;
+        out.push(isGone(e, msg) ? { externalId: id, variants: [], gone: true } : { externalId: id, variants: [], error: msg });
+      }
     }
     return out;
   },

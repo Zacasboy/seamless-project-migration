@@ -31,6 +31,10 @@ export type SupplierProduct = {
 export type StockResult = {
   externalId: string;
   variants: Pick<SupplierVariant, "id" | "sku" | "stock" | "available">[];
+  /** O fornecedor diz que o produto deixou de estar à venda (para Portugal): fica esgotado. */
+  gone?: boolean;
+  /** Falha só deste produto: o stock guardado mantém-se e os outros produtos sincronizam na mesma. */
+  error?: string;
 };
 
 export interface SupplierAdapter {

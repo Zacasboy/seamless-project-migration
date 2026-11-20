@@ -50,7 +50,7 @@ export async function syncSupplierStock(db: Db, onlyProductIds?: string[]): Prom
   let q = db
     .from("product_supplier_links")
     .select(
-      "id, product_id, external_product_id, external_variants, supplier_id, suppliers(provider_key)",
+      "id, product_id, external_product_id, external_variants, supplier_id, suppliers(provider_key), products(title)",
     )
     .not("external_product_id", "is", null)
     .limit(1000);
@@ -92,8 +92,21 @@ export async function syncSupplierStock(db: Db, onlyProductIds?: string[]): Prom
     for (const l of list) {
       const r = results.find((x) => x.externalId === l.external_product_id);
       if (!r) continue;
-      const merged = mergeStock((l.external_variants as SupplierVariantRef[]) ?? [], r.variants);
-      const status = productStockStatus(merged);
+      const title = (l.products as unknown as { title?: string } | null)?.title ?? l.external_product_id;
+      if (r.error) {
+        // Só este produto falhou: mantém o stock anterior e segue para os outros.
+        summary.errors.push({ provider: adapter.name, message: `${title}: ${r.error}` });
+        await db
+          .from("product_supplier_links")
+          .update({ last_error: r.error.slice(0, 500), last_checked_at: now })
+          .eq("id", l.id);
+        continue;
+      }
+      // Deixou de estar à venda: todas as variantes ficam esgotadas.
+      const merged = mergeStock((l.external_variants as SupplierVariantRef[]) ?? [], r.gone ? [] : r.variants);
+      const status = r.gone ? ("out_of_stock" as const) : productStockStatus(merged);
+      if (r.gone)
+        summary.errors.push({ provider: adapter.name, message: `«${title}» deixou de estar à venda para Portugal e ficou esgotado` });
       summary.checked++;
       if (status === "out_of_stock") summary.outOfStock++;
       await db
@@ -102,7 +115,7 @@ export async function syncSupplierStock(db: Db, onlyProductIds?: string[]): Prom
           external_variants: merged,
           availability_status: status,
           last_checked_at: now,
-          last_error: null,
+          last_error: r.gone ? "Deixou de estar à venda no fornecedor (Portugal)." : null,
         })
         .eq("id", l.id);
       await db.from("products").update({ stock_status: status }).eq("id", l.product_id);
@@ -154,6 +167,11 @@ export async function checkLinesWithSuppliers(
       }
       for (const r of list) {
         const stock = res.find((x) => x.externalId === r.external_product_id);
+        // Falha pontual deste produto: a encomenda segue como "por confirmar".
+        if (stock?.error) {
+          unverified.push(r.product_id);
+          continue;
+        }
         const saved = (r.external_variants as { id: string; size: string | null }[]) ?? [];
         for (const line of lines.filter((l) => l.product_id === r.product_id)) {
           if (!stock) {
