@@ -46,11 +46,14 @@ export function mergeStock(
   });
 }
 
+/** Estado da ligação quando o fornecedor deixou de vender o produto. */
+export const DISCONTINUED = "discontinued";
+
 export async function syncSupplierStock(db: Db, onlyProductIds?: string[]): Promise<SyncSummary> {
   let q = db
     .from("product_supplier_links")
     .select(
-      "id, product_id, external_product_id, external_variants, supplier_id, suppliers(provider_key), products(title)",
+      "id, product_id, external_product_id, external_variants, availability_status, supplier_id, suppliers(provider_key), products(title)",
     )
     .not("external_product_id", "is", null)
     .limit(1000);
@@ -105,20 +108,32 @@ export async function syncSupplierStock(db: Db, onlyProductIds?: string[]): Prom
       // Deixou de estar à venda: todas as variantes ficam esgotadas.
       const merged = mergeStock((l.external_variants as SupplierVariantRef[]) ?? [], r.gone ? [] : r.variants);
       const status = r.gone ? ("out_of_stock" as const) : productStockStatus(merged);
-      if (r.gone)
-        summary.errors.push({ provider: adapter.name, message: `«${title}» deixou de estar à venda para Portugal e ficou esgotado` });
+      if (r.gone && l.availability_status !== DISCONTINUED)
+        summary.errors.push({
+          provider: adapter.name,
+          message: `«${title}» deixou de estar à venda e foi retirado da loja (veja Produtos → Retirados pelo fornecedor)`,
+        });
+      if (!r.gone && l.availability_status === DISCONTINUED)
+        summary.errors.push({
+          provider: adapter.name,
+          message: `«${title}» voltou a estar à venda no fornecedor; continua fora da loja até o publicar`,
+        });
       summary.checked++;
       if (status === "out_of_stock") summary.outOfStock++;
       await db
         .from("product_supplier_links")
         .update({
           external_variants: merged,
-          availability_status: status,
+          availability_status: r.gone ? DISCONTINUED : status,
           last_checked_at: now,
           last_error: r.gone ? "Deixou de estar à venda no fornecedor (Portugal)." : null,
         })
         .eq("id", l.id);
-      await db.from("products").update({ stock_status: status }).eq("id", l.product_id);
+      // Retirado pelo fornecedor: sai da loja (despublicado) e fica para o administrador decidir.
+      await db
+        .from("products")
+        .update(r.gone ? { stock_status: status, published: false } : { stock_status: status })
+        .eq("id", l.product_id);
     }
     await db
       .from("suppliers")

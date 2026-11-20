@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AdminCrud } from "@/components/admin/AdminCrud";
 import { ProductSupplierPanel } from "@/components/admin/ProductSupplierPanel";
 import { BatchPhotoButton, ProductPhotoPanel } from "@/components/admin/ProductPhotos";
+import { DiscontinuedPanel } from "@/components/admin/DiscontinuedPanel";
 import { ProductImage } from "@/components/ProductImage";
 import { StatusPill } from "@/components/StatusPill";
 import { euro } from "@/lib/cart";
@@ -145,6 +146,7 @@ function Page() {
         { key: "is_demo", label: "Registo de demonstração", type: "bool" },
       ]}
       headerExtra={<BatchPhotoButton />}
+      beforeTable={<DiscontinuedPanel />}
       editorExtra={(row, setRow) => (
         <>
           <ProductSupplierPanel row={row} setRow={setRow} />

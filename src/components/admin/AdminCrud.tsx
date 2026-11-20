@@ -81,6 +81,7 @@ export function AdminCrud({
   beforeSave,
   editorExtra,
   headerExtra,
+  beforeTable,
   emptyText = "Sem registos.",
 }: {
   table: string;
@@ -98,6 +99,8 @@ export function AdminCrud({
   /** Bloco extra no editor (ex.: fornecedor do produto); pode alterar o registo em edição. */
   editorExtra?: (row: Row, setRow: (r: Row) => void) => ReactNode;
   headerExtra?: ReactNode;
+  /** Conteúdo entre o cabeçalho e a tabela (avisos, listas a tratar). */
+  beforeTable?: ReactNode;
   emptyText?: string;
 }) {
   const qc = useQueryClient();
@@ -196,6 +199,7 @@ export function AdminCrud({
           </div>
         }
       />
+      {beforeTable && <div className="mt-6">{beforeTable}</div>}
       <div className="mt-6 flex flex-wrap gap-3">
         <Input
           placeholder="Pesquisar…"
