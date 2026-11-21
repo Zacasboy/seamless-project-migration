@@ -85,3 +85,13 @@ describe("Printful: escolha da loja", () => {
     expect(() => pickStore([{ id: 1, name: "A" }, { id: 2, name: "B" }])).toThrow(/PRINTFUL_STORE_ID.*A \(1\), B \(2\)/);
   });
 });
+
+import { printfulAdapter } from "./printful";
+describe("Printful: referência do produto", () => {
+  it("aceita número, ?id= e endereço com loja e produto (usa o último número)", () => {
+    expect(printfulAdapter.parseRef("412345678")).toBe("412345678");
+    expect(printfulAdapter.parseRef("https://www.printful.com/dashboard/sync/update?id=412345678")).toBe("412345678");
+    expect(printfulAdapter.parseRef("https://www.printful.com/dashboard/stores/16789012/products/412345678")).toBe("412345678");
+    expect(printfulAdapter.parseRef("https://example.com/412345678")).toBeNull();
+  });
+});

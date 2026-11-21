@@ -156,7 +156,8 @@ export const printfulAdapter: SupplierAdapter = {
       const u = new URL(s);
       if (!/(^|\.)printful\.com$/i.test(u.hostname)) return null;
       // Painel: printful.com/dashboard/sync/update?id=123 ou …/store/products/123
-      const id = u.searchParams.get("id") ?? u.pathname.match(/\/(\d{4,})(?:\/|$)/)?.[1];
+      // Endereços com o número da loja e do produto (…/stores/123/products/456): o produto é o último.
+      const id = u.searchParams.get("id") ?? [...u.pathname.matchAll(/\/(\d{4,})(?=\/|$)/g)].pop()?.[1];
       return id && /^\d+$/.test(id) ? id : null;
     } catch {
       return /^\d{4,}$/.test(s) ? s : null;
