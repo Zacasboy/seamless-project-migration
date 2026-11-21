@@ -71,6 +71,23 @@ export const getSupplierStatus = createServerFn({ method: "GET" })
     });
   });
 
+/** Testa mesmo a ligação (pedido leve ao fornecedor); não guarda nada. */
+export const testSupplierConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: unknown) => z.object({ provider: z.enum(PROVIDERS) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { ADAPTERS } = await import("@/server/suppliers");
+    const a = ADAPTERS[data.provider];
+    if (!a.configured()) return { ok: false, message: `Faltam as variáveis ${a.env.join(", ")}` };
+    try {
+      const detail = await a.ping();
+      return { ok: true, message: `Ligação confirmada${detail ? ` · ${detail}` : ""}` };
+    } catch (e) {
+      return { ok: false, message: friendly(e) };
+    }
+  });
+
 const refSchema = z.object({
   input: z.string().trim().min(3).max(500),
   provider: z.enum(PROVIDERS).optional(),

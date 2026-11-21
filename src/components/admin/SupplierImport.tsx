@@ -13,6 +13,7 @@ import {
   previewSupplierProduct,
   startAliExpressAuth,
   syncSuppliersNow,
+  testSupplierConnection,
 } from "@/lib/suppliers.functions";
 
 type Preview = Awaited<ReturnType<typeof previewSupplierProduct>>;
@@ -27,6 +28,16 @@ const when = (iso: string | null) =>
 
 export function SupplierConnections() {
   const qc = useQueryClient();
+  const [tests, setTests] = useState<Record<string, { ok: boolean; message: string } | "a testar">>({});
+  const test = async (key: Provider) => {
+    setTests((t) => ({ ...t, [key]: "a testar" }));
+    try {
+      const r = await testSupplierConnection({ data: { provider: key } });
+      setTests((t) => ({ ...t, [key]: r }));
+    } catch (e) {
+      setTests((t) => ({ ...t, [key]: { ok: false, message: e instanceof Error ? e.message : "Erro" } }));
+    }
+  };
   const status = useQuery({
     queryKey: ["admin", "supplier-status"],
     queryFn: () => getSupplierStatus(),
@@ -111,6 +122,16 @@ export function SupplierConnections() {
                           s.oauth?.expiresAt ? ` · autorização válida até ${when(s.oauth.expiresAt)}` : ""
                         }`}
                 </span>
+                {s.configured && (!s.oauth || s.oauth.authorized) && (
+                  <Button size="sm" variant="ghost" onClick={() => test(s.key as Provider)} disabled={tests[s.key] === "a testar"}>
+                    {tests[s.key] === "a testar" ? "A testar…" : "Testar ligação"}
+                  </Button>
+                )}
+                {tests[s.key] && tests[s.key] !== "a testar" && (
+                  <span role="status" className={(tests[s.key] as { ok: boolean }).ok ? "text-[var(--success,#2f6b3a)]" : "text-destructive"}>
+                    {(tests[s.key] as { message: string }).message}
+                  </span>
+                )}
                 {s.configured && s.oauth && (
                   <Button
                     size="sm"

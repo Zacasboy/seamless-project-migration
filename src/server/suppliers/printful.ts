@@ -13,9 +13,42 @@ import {
 const BASE = "https://api.printful.com";
 const env = (k: string) => process.env[k]?.trim() || "";
 
-function headers(): HeadersInit {
+type Store = { id: number; name?: string; type?: string };
+
+// Loja a usar. Um token de uma só loja dispensa-a; um token de conta (várias lojas) obriga a indicar
+// a loja em cada pedido. Sem PRINTFUL_STORE_ID, descobre-a sozinho: se a conta tiver uma única loja,
+// usa essa; se tiver várias, pede para escolher.
+let detected: { id: string | null; name: string | null } | null = null;
+
+export function pickStore(stores: Store[]): { id: string; name: string | null } {
+  if (stores.length === 1) return { id: String(stores[0]!.id), name: stores[0]!.name ?? null };
+  throw new SupplierError(
+    `Printful: a conta tem ${stores.length} lojas. Defina PRINTFUL_STORE_ID na Vercel com o número da loja certa: ` +
+      stores.map((x) => `${x.name ?? "sem nome"} (${x.id})`).join(", "),
+    "printful",
+  );
+}
+
+export async function printfulStore(): Promise<{ id: string | null; name: string | null }> {
+  if (env("PRINTFUL_STORE_ID")) return { id: env("PRINTFUL_STORE_ID"), name: null };
+  if (detected) return detected;
+  const res = await getJson<{ code: number; result?: Store[]; error?: { message?: string } }>(
+    "printful",
+    `${BASE}/stores`,
+    { headers: { Authorization: `Bearer ${env("PRINTFUL_TOKEN")}` } },
+  ).catch((e) => {
+    if (e instanceof SupplierError && e.status === 401) throw new SupplierError("Printful: o token foi recusado (PRINTFUL_TOKEN).", "printful", 401);
+    return null; // token de loja sem acesso à lista: não precisa da loja
+  });
+  const stores = res?.code === 200 ? (res.result ?? []) : [];
+  detected = stores.length ? pickStore(stores) : { id: null, name: null };
+  return detected;
+}
+
+async function headers(): Promise<HeadersInit> {
   const h: Record<string, string> = { Authorization: `Bearer ${env("PRINTFUL_TOKEN")}` };
-  if (env("PRINTFUL_STORE_ID")) h["X-PF-Store-Id"] = env("PRINTFUL_STORE_ID");
+  const store = await printfulStore();
+  if (store.id) h["X-PF-Store-Id"] = store.id;
   return h;
 }
 
@@ -23,7 +56,7 @@ async function pf<T>(path: string): Promise<T> {
   const res = await getJson<{ code: number; result: T; error?: { message?: string } }>(
     "printful",
     `${BASE}${path}`,
-    { headers: headers() },
+    { headers: await headers() },
   );
   if (res.code !== 200)
     throw new SupplierError(`Printful: ${res.error?.message ?? res.code}`, "printful", res.code);
@@ -135,6 +168,8 @@ export const printfulAdapter: SupplierAdapter = {
   },
   async ping() {
     await pf<unknown>("/store/products?limit=1");
+    const store = await printfulStore();
+    return store.name ? `loja «${store.name}»` : store.id ? `loja ${store.id}` : undefined;
   },
   async fetchStock(ids) {
     const out: StockResult[] = [];

@@ -77,3 +77,11 @@ describe("AliExpress: produto que deixou de estar à venda", () => {
     expect(productStockStatus(merged)).toBe("out_of_stock");
   });
 });
+
+import { pickStore } from "./printful";
+describe("Printful: escolha da loja", () => {
+  it("uma loja: usa-a; várias: pede PRINTFUL_STORE_ID com a lista", () => {
+    expect(pickStore([{ id: 123, name: "Pallessiani" }])).toEqual({ id: "123", name: "Pallessiani" });
+    expect(() => pickStore([{ id: 1, name: "A" }, { id: 2, name: "B" }])).toThrow(/PRINTFUL_STORE_ID.*A \(1\), B \(2\)/);
+  });
+});

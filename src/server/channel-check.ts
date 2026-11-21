@@ -9,7 +9,7 @@ type Db = SupabaseClient<Database>;
 
 const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
 
-async function pingWithTimeout(fn: () => Promise<void>, ms = 8000) {
+async function pingWithTimeout(fn: () => Promise<unknown>, ms = 8000) {
   try {
     await Promise.race([
       fn(),
